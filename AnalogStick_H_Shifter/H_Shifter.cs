@@ -30,8 +30,7 @@ namespace AnalogStick_H_Shifter
         private BackgroundWorker bGWorker = null;
 
         Rectangle[] rectangles = new Rectangle[7];
-        int rectangleSize = 50;
-
+        int rectangleSize = 150;
 
         public H_Shifter()
         {
@@ -68,14 +67,9 @@ namespace AnalogStick_H_Shifter
 
         private void textBox1_TextChanged(object sender, EventArgs e)
         {
-            //Console.WriteLine((int)textBox1.Text);
-            int value = 0;
-            if (int.TryParse(textBox1.Text, out value))
-            {
-                rectangleSize = value;
-                refreshOverlay = true;
-                overlayBox_Click(null, null);
-            }
+            refreshOverlay = true;
+            overlayBox_Click(null, null);
+
         }
 
         private void overlayBox_Click(object sender, EventArgs e)
@@ -117,7 +111,7 @@ namespace AnalogStick_H_Shifter
                         rectangles[5].Y = me.Location.Y - (rectangles[5].Height / 2);
                         Console.WriteLine("sechster");
                         break;
-                    case 99:
+                    case 9:
                         rectangles[6].X = me.Location.X - (rectangles[6].Width / 2);
                         rectangles[6].Y = me.Location.Y - (rectangles[6].Height / 2);
                         Console.WriteLine("rückwärts");
@@ -254,11 +248,11 @@ namespace AnalogStick_H_Shifter
             }
         }
 
-        private void gear99Button_Click(object sender, EventArgs e)
+        private void gear9Button_Click(object sender, EventArgs e)
         {
-            if (previousGear != 99)
+            if (previousGear != 9)
             {
-                gear99Button.BackColor = Color.LightSkyBlue;
+                gear9Button.BackColor = Color.LightSkyBlue;
                 string button = "gear" + previousGear + "Button";
 
                 var matches = Controls.Find(button, true);
@@ -266,7 +260,7 @@ namespace AnalogStick_H_Shifter
                 {
                     matches[0].BackColor = Color.Transparent;
                 }
-                previousGear = 99;
+                previousGear = 9;
 
             }
         }
@@ -309,11 +303,13 @@ namespace AnalogStick_H_Shifter
 
                 xinput.Update();
 
-                double relStickX = (double)axisSize * ((double)xinput.gamepad.RightThumbX + 32768) / (double)65536;
-                double relStickY = (double)axisSize * ((double)xinput.gamepad.RightThumbY + 32768) / (double)65536;
+                double relStickX = axisSize * ((double)xinput.gamepad.RightThumbX + 32768) / 65536;
+                double relStickY = axisSize * ((double)xinput.gamepad.RightThumbY + 32768) / 65536;
 
                 int relStickXInt = Convert.ToInt32(relStickX);
                 int relStickYInt = Convert.ToInt32(relStickY);
+
+                Point stick = new Point(relStickXInt, axisSize - relStickYInt);
 
                 Rectangle axisPosition = new Rectangle(relStickXInt, axisSize - relStickYInt, 8, 8);
 
@@ -330,52 +326,56 @@ namespace AnalogStick_H_Shifter
                         }
 
                         // first gear ScanCodeShort.KEY_1
-                        if (relStickXInt < 80 && relStickYInt > 300)
+                        if (rectangles[0].Contains(stick))
                         {
-                            graph.FillEllipse(Brushes.Red, axisPosition);
+                            graph.FillEllipse(rectangleColors[0], axisPosition);
                             bGWorker.ReportProgress(2);
                         }
                         // second gear ScanCodeShort.KEY_2
-                        else if (relStickXInt < 80 && relStickYInt < 50)
+                        else if (rectangles[1].Contains(stick))
                         {
-                            graph.FillEllipse(Brushes.Green, axisPosition);
+                            graph.FillEllipse(rectangleColors[1], axisPosition);
                             bGWorker.ReportProgress(3);
                         }
                         // third gear ScanCodeShort.KEY_3
-                        else if (relStickXInt > 120 && relStickXInt < 230 && relStickYInt > 300)
+                        else if (rectangles[2].Contains(stick))
                         {
-                            graph.FillEllipse(Brushes.Blue, axisPosition);
+                            graph.FillEllipse(rectangleColors[2], axisPosition);
                             bGWorker.ReportProgress(4);
                         }
                         // fourth gear ScanCodeShort.KEY_4
-                        else if (relStickXInt > 120 && relStickXInt < 230 && relStickYInt < 50)
+                        else if (rectangles[3].Contains(stick))
                         {
-                            graph.FillEllipse(Brushes.Yellow, axisPosition);
+                            graph.FillEllipse(rectangleColors[3], axisPosition);
                             bGWorker.ReportProgress(5);
                         }
                         // fifth gear ScanCodeShort.KEY_5
-                        else if (relStickXInt > 260 && relStickYInt > 300)
+                        else if (rectangles[4].Contains(stick))
                         {
-                            graph.FillEllipse(Brushes.Orange, axisPosition);
+                            graph.FillEllipse(rectangleColors[4], axisPosition);
                             bGWorker.ReportProgress(6);
                         }
                         // sixth gear ScanCodeShort.KEY_6
-                        else if (relStickXInt > 260 && relStickYInt < 50)
+                        else if (rectangles[5].Contains(stick))
                         {
-                            graph.FillEllipse(Brushes.Magenta, axisPosition);
+                            graph.FillEllipse(rectangleColors[5], axisPosition);
                             bGWorker.ReportProgress(7);
                         }
-                        else // ScanCodeShort.KEY_0
+                        // reverse gear ScanCodeShort.KEY_9
+                        else if (rectangles[5].Contains(stick))
+                        {
+                            graph.FillEllipse(rectangleColors[6], axisPosition);
+                            bGWorker.ReportProgress(10);
+                        }
+                        else // ScanCodeShort.KEY_9
                         {
                             graph.FillEllipse(Brushes.Black, axisPosition);
                             bGWorker.ReportProgress(11);
                         }
                     }
 
-                    Console.WriteLine(relStickXInt + " in X " + relStickYInt + " in Y");
-
+                    //Console.WriteLine("X: " + relStickXInt + " Y: " + relStickYInt);
                     axisBox.Image = axisImage;
-
                     System.Threading.Thread.Sleep(50);
                 }
                 catch (Exception) { }
@@ -395,7 +395,6 @@ namespace AnalogStick_H_Shifter
                 }
                 else
                 {
-
                     SendInputWithAPI((ScanCodeShort)e.ProgressPercentage);
                 }
 
@@ -430,7 +429,7 @@ namespace AnalogStick_H_Shifter
                     return;
 
                 gamepad = controller.GetState().Gamepad;
-                Console.WriteLine("X: " + gamepad.RightThumbX + "\t Y: " + gamepad.RightThumbY + " " + recognizedGear);
+                //Console.WriteLine("X: " + gamepad.RightThumbX + "\t Y: " + gamepad.RightThumbY + " " + recognizedGear);
             }
         }
 
