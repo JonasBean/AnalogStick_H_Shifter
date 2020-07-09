@@ -2,6 +2,7 @@
 using System;
 using System.ComponentModel;
 using System.Drawing;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
@@ -17,7 +18,8 @@ namespace AnalogStick_H_Shifter
         public Bitmap axisImage;
         public Bitmap overlayImage;
 
-        static int axisSize = 700;
+        static int axisSize = 680;
+        static int imageSize = axisSize + 20;
         int previousGear = 0;
         int previousGearInBackground = -1;
 
@@ -30,6 +32,7 @@ namespace AnalogStick_H_Shifter
         private BackgroundWorker bGWorker = null;
 
         Rectangle[] rectangles = new Rectangle[7];
+        int[] shiftCounter = new int[7];
         int rectangleSize = 150;
 
         public H_Shifter()
@@ -49,18 +52,49 @@ namespace AnalogStick_H_Shifter
             rectangleColors[5] = Brushes.Blue;
             rectangleColors[6] = Brushes.Pink;
 
-            axisImage = new Bitmap(axisSize, axisSize);
-            overlayImage = new Bitmap(axisSize, axisSize);
-
-
+            axisImage = new Bitmap(imageSize, imageSize);
+            overlayImage = new Bitmap(imageSize, imageSize);
 
             overlayBox.BackColor = Color.Transparent;
             overlayBox.Parent = axisBox;
             overlayBox.Location = new Point(0, 0);
 
-            overlayBox.Image = overlayImage;
-
             gearRightNow.Font = new Font("Microsoft Sans Serif", 55, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
+
+            try
+            {
+                rectangles = ReadFromBinaryFile<Rectangle[]>(Path.GetDirectoryName(Application.ExecutablePath) + "//gearLayout");
+                Console.WriteLine("Gearlayout-File loaded successfully");
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Gearlayout-File not found");
+            }
+
+            try
+            {
+                shiftCounter = ReadFromBinaryFile<int[]>(Path.GetDirectoryName(Application.ExecutablePath) + "//shiftCount");
+
+                frstGearLabel.Text = shiftCounter[0].ToString();
+                scndGearLabel.Text = shiftCounter[1].ToString();
+                thrdGearLabel.Text = shiftCounter[2].ToString();
+                frthGearLabel.Text = shiftCounter[3].ToString();
+                ffthGearLabel.Text = shiftCounter[4].ToString();
+                sxthGearLabel.Text = shiftCounter[5].ToString();
+                rvrsGearLabel.Text = shiftCounter[6].ToString();
+
+                ttlshift.Text = getTotalShifts().ToString();
+
+                Console.WriteLine("Shiftcount-File loaded successfully");
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Shiftcount-File not found");
+            }
+
+            refreshOverlay = true;
+            overlayBox_Click(null, null);
+            overlayBox.Image = overlayImage;
 
             xinput.Update();
         }
@@ -69,7 +103,6 @@ namespace AnalogStick_H_Shifter
         {
             refreshOverlay = true;
             overlayBox_Click(null, null);
-
         }
 
         private void overlayBox_Click(object sender, EventArgs e)
@@ -84,37 +117,30 @@ namespace AnalogStick_H_Shifter
                     case 1:
                         rectangles[0].X = me.Location.X - (rectangles[0].Width / 2);
                         rectangles[0].Y = me.Location.Y - (rectangles[0].Height / 2);
-                        Console.WriteLine("erster");
                         break;
                     case 2:
                         rectangles[1].X = me.Location.X - (rectangles[1].Width / 2);
                         rectangles[1].Y = me.Location.Y - (rectangles[1].Height / 2);
-                        Console.WriteLine("zweiter");
                         break;
                     case 3:
                         rectangles[2].X = me.Location.X - (rectangles[2].Width / 2);
                         rectangles[2].Y = me.Location.Y - (rectangles[2].Height / 2);
-                        Console.WriteLine("dritter");
                         break;
                     case 4:
                         rectangles[3].X = me.Location.X - (rectangles[3].Width / 2);
                         rectangles[3].Y = me.Location.Y - (rectangles[3].Height / 2);
-                        Console.WriteLine("vierter");
                         break;
                     case 5:
                         rectangles[4].X = me.Location.X - (rectangles[4].Width / 2);
                         rectangles[4].Y = me.Location.Y - (rectangles[4].Height / 2);
-                        Console.WriteLine("fünfter");
                         break;
                     case 6:
                         rectangles[5].X = me.Location.X - (rectangles[5].Width / 2);
                         rectangles[5].Y = me.Location.Y - (rectangles[5].Height / 2);
-                        Console.WriteLine("sechster");
                         break;
                     case 9:
                         rectangles[6].X = me.Location.X - (rectangles[6].Width / 2);
                         rectangles[6].Y = me.Location.Y - (rectangles[6].Height / 2);
-                        Console.WriteLine("rückwärts");
                         break;
                     default: break;
                 }
@@ -124,7 +150,7 @@ namespace AnalogStick_H_Shifter
                 refreshOverlay = false;
             }
 
-            overlayImage = new Bitmap(axisSize, axisSize);
+            overlayImage = new Bitmap(imageSize, imageSize);
 
             using (Graphics graph = Graphics.FromImage(overlayImage))
             {
@@ -138,6 +164,12 @@ namespace AnalogStick_H_Shifter
             }
 
             overlayBox.Image = overlayImage;
+        }
+
+        private void saveButton_Click(object sender, EventArgs e)
+        {
+            // To save the characterSheet variable contents to a file.
+            WriteToBinaryFile(Path.GetDirectoryName(Application.ExecutablePath) + "//gearLayout", rectangles);
         }
 
         private void resetImageButton_Click(object sender, EventArgs e)
@@ -261,7 +293,6 @@ namespace AnalogStick_H_Shifter
                     matches[0].BackColor = Color.Transparent;
                 }
                 previousGear = 9;
-
             }
         }
 
@@ -289,9 +320,6 @@ namespace AnalogStick_H_Shifter
                 bGWorker.CancelAsync();
                 activateControllerButton.BackColor = Color.Transparent;
             }
-
-            SendInputWithAPI(ScanCodeShort.KEY_1);
-            Release(ScanCodeShort.KEY_2);
         }
 
         void bGWorker_DoWork(object sender, DoWorkEventArgs e)
@@ -310,18 +338,15 @@ namespace AnalogStick_H_Shifter
                 int relStickYInt = Convert.ToInt32(relStickY);
 
                 Point stick = new Point(relStickXInt, axisSize - relStickYInt);
-
-                Rectangle axisPosition = new Rectangle(relStickXInt, axisSize - relStickYInt, 8, 8);
+                Rectangle axisPosition = new Rectangle(relStickXInt, axisSize - relStickYInt, 10, 10);
 
                 try
                 {
                     using (Graphics graph = Graphics.FromImage(axisImage))
                     {
-                        Rectangle ImageSize = new Rectangle(0, 0, axisSize, axisSize);
-
                         if (paintItOnce)
                         {
-                            graph.FillRectangle(Brushes.White, ImageSize);
+                            graph.FillRectangle(Brushes.White, new Rectangle(0, 0, imageSize, imageSize));
                             paintItOnce = false;
                         }
 
@@ -362,19 +387,19 @@ namespace AnalogStick_H_Shifter
                             bGWorker.ReportProgress(7);
                         }
                         // reverse gear ScanCodeShort.KEY_9
-                        else if (rectangles[5].Contains(stick))
+                        else if (rectangles[6].Contains(stick))
                         {
                             graph.FillEllipse(rectangleColors[6], axisPosition);
                             bGWorker.ReportProgress(10);
                         }
                         else // ScanCodeShort.KEY_9
                         {
+                            gearRightNow.ForeColor = Color.Black;
                             graph.FillEllipse(Brushes.Black, axisPosition);
                             bGWorker.ReportProgress(11);
                         }
                     }
 
-                    //Console.WriteLine("X: " + relStickXInt + " Y: " + relStickYInt);
                     axisBox.Image = axisImage;
                     System.Threading.Thread.Sleep(50);
                 }
@@ -400,11 +425,83 @@ namespace AnalogStick_H_Shifter
 
                 previousGearInBackground = e.ProgressPercentage;
                 xinput.recognizedGear = e.ProgressPercentage.ToString();
+
+                switch (previousGearInBackground - 1)
+                {
+                    case 1:
+                        gearRightNow.ForeColor = Color.Red;
+                        gearRightNow.Text = (previousGearInBackground - 1).ToString();
+                        shiftCounter[0]++;
+                        frstGearLabel.Text = shiftCounter[0].ToString();
+                        break;
+                    case 2:
+                        gearRightNow.ForeColor = Color.Orange;
+                        gearRightNow.Text = (previousGearInBackground - 1).ToString();
+                        shiftCounter[1]++;
+                        scndGearLabel.Text = shiftCounter[1].ToString();
+                        break;
+                    case 3:
+                        gearRightNow.ForeColor = Color.Yellow;
+                        gearRightNow.Text = (previousGearInBackground - 1).ToString();
+                        shiftCounter[2]++;
+                        thrdGearLabel.Text = shiftCounter[2].ToString();
+                        break;
+                    case 4:
+                        gearRightNow.ForeColor = Color.Green;
+                        gearRightNow.Text = (previousGearInBackground - 1).ToString();
+                        shiftCounter[3]++;
+                        frthGearLabel.Text = shiftCounter[3].ToString();
+                        break;
+                    case 5:
+                        gearRightNow.ForeColor = Color.LightBlue;
+                        gearRightNow.Text = (previousGearInBackground - 1).ToString();
+                        shiftCounter[4]++;
+                        ffthGearLabel.Text = shiftCounter[4].ToString();
+                        break;
+                    case 6:
+                        gearRightNow.ForeColor = Color.Blue;
+                        gearRightNow.Text = (previousGearInBackground - 1).ToString();
+                        shiftCounter[5]++;
+                        sxthGearLabel.Text = shiftCounter[5].ToString();
+                        break;
+                    case 9:
+                        gearRightNow.ForeColor = Color.Pink;
+                        gearRightNow.Text = "R";
+                        shiftCounter[6]++;
+                        rvrsGearLabel.Text = shiftCounter[6].ToString();
+                        break;
+                    default:
+                        gearRightNow.ForeColor = Color.Black;
+                        gearRightNow.Text = "N";
+                        break;
+                }
+
+                ttlshift.Text = getTotalShifts().ToString();
+                WriteToBinaryFile(Path.GetDirectoryName(Application.ExecutablePath) + "//shiftCount", shiftCounter);
+
             }
             else
             {
                 xinput.recognizedGear = "";
             }
+        }
+
+        int getTotalShifts()
+        {
+            int tmp = 0;
+            
+            for (int i = 0; i < shiftCounter.Length; i++)
+            {
+                tmp += shiftCounter[i];
+            }
+
+            return tmp;
+        }
+
+        private void pictureBox1_Click(object sender, EventArgs e)
+        {
+            aboutForm win2 = new aboutForm();
+            win2.Show();
         }
 
         class XInputController
@@ -457,6 +554,39 @@ namespace AnalogStick_H_Shifter
             Inputs[0] = Input;
 
             SendInput(1, Inputs, INPUT.Size);
+        }
+
+        /// <summary>
+        /// Writes the given object instance to a binary file.
+        /// <para>Object type (and all child types) must be decorated with the [Serializable] attribute.</para>
+        /// <para>To prevent a variable from being serialized, decorate it with the [NonSerialized] attribute; cannot be applied to properties.</para>
+        /// </summary>
+        /// <typeparam name="T">The type of object being written to the XML file.</typeparam>
+        /// <param name="filePath">The file path to write the object instance to.</param>
+        /// <param name="objectToWrite">The object instance to write to the XML file.</param>
+        /// <param name="append">If false the file will be overwritten if it already exists. If true the contents will be appended to the file.</param>
+        public static void WriteToBinaryFile<T>(string filePath, T objectToWrite, bool append = false)
+        {
+            using (Stream stream = File.Open(filePath, append ? FileMode.Append : FileMode.Create))
+            {
+                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                binaryFormatter.Serialize(stream, objectToWrite);
+            }
+        }
+
+        /// <summary>
+        /// Reads an object instance from a binary file.
+        /// </summary>
+        /// <typeparam name="T">The type of object to read from the XML.</typeparam>
+        /// <param name="filePath">The file path to read the object instance from.</param>
+        /// <returns>Returns a new instance of the object read from the binary file.</returns>
+        public static T ReadFromBinaryFile<T>(string filePath)
+        {
+            using (Stream stream = File.Open(filePath, FileMode.Open))
+            {
+                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                return (T)binaryFormatter.Deserialize(stream);
+            }
         }
 
         /// <summary>
@@ -1430,5 +1560,7 @@ namespace AnalogStick_H_Shifter
             internal short wParamL;
             internal short wParamH;
         }
+
+        
     }
 }

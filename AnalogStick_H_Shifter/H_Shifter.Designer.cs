@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(H_Shifter));
             this.activateControllerButton = new System.Windows.Forms.Button();
             this.axisBox = new System.Windows.Forms.PictureBox();
             this.overlayBox = new System.Windows.Forms.PictureBox();
@@ -47,8 +48,23 @@
             this.colorPanelR = new System.Windows.Forms.Panel();
             this.gearRightNow = new System.Windows.Forms.Label();
             this.resetImageButton = new System.Windows.Forms.Button();
+            this.saveButton = new System.Windows.Forms.Button();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.label1 = new System.Windows.Forms.Label();
+            this.pictureBox2 = new System.Windows.Forms.PictureBox();
+            this.frstGearLabel = new System.Windows.Forms.Label();
+            this.thrdGearLabel = new System.Windows.Forms.Label();
+            this.ffthGearLabel = new System.Windows.Forms.Label();
+            this.rvrsGearLabel = new System.Windows.Forms.Label();
+            this.scndGearLabel = new System.Windows.Forms.Label();
+            this.frthGearLabel = new System.Windows.Forms.Label();
+            this.sxthGearLabel = new System.Windows.Forms.Label();
+            this.label2 = new System.Windows.Forms.Label();
+            this.ttlshift = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.axisBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.overlayBox)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.SuspendLayout();
             // 
             // activateControllerButton
@@ -63,6 +79,7 @@
             // 
             // axisBox
             // 
+            this.axisBox.BackColor = System.Drawing.Color.White;
             this.axisBox.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
             this.axisBox.Location = new System.Drawing.Point(132, 12);
             this.axisBox.Name = "axisBox";
@@ -232,12 +249,155 @@
             this.resetImageButton.UseVisualStyleBackColor = true;
             this.resetImageButton.Click += new System.EventHandler(this.resetImageButton_Click);
             // 
+            // saveButton
+            // 
+            this.saveButton.Location = new System.Drawing.Point(12, 115);
+            this.saveButton.Name = "saveButton";
+            this.saveButton.Size = new System.Drawing.Size(114, 45);
+            this.saveButton.TabIndex = 19;
+            this.saveButton.Text = "Save gear layout";
+            this.saveButton.UseVisualStyleBackColor = true;
+            this.saveButton.Click += new System.EventHandler(this.saveButton_Click);
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pictureBox1.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
+            this.pictureBox1.Location = new System.Drawing.Point(838, 660);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(143, 52);
+            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox1.TabIndex = 20;
+            this.pictureBox1.TabStop = false;
+            this.pictureBox1.Click += new System.EventHandler(this.pictureBox1_Click);
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(838, 644);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(47, 13);
+            this.label1.TabIndex = 21;
+            this.label1.Text = "made by";
+            // 
+            // pictureBox2
+            // 
+            this.pictureBox2.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox2.Image")));
+            this.pictureBox2.Location = new System.Drawing.Point(12, 204);
+            this.pictureBox2.Name = "pictureBox2";
+            this.pictureBox2.Size = new System.Drawing.Size(114, 120);
+            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox2.TabIndex = 22;
+            this.pictureBox2.TabStop = false;
+            // 
+            // frstGearLabel
+            // 
+            this.frstGearLabel.AutoSize = true;
+            this.frstGearLabel.Location = new System.Drawing.Point(33, 178);
+            this.frstGearLabel.Name = "frstGearLabel";
+            this.frstGearLabel.Size = new System.Drawing.Size(13, 13);
+            this.frstGearLabel.TabIndex = 23;
+            this.frstGearLabel.Text = "1";
+            this.frstGearLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // thrdGearLabel
+            // 
+            this.thrdGearLabel.AutoSize = true;
+            this.thrdGearLabel.Location = new System.Drawing.Point(66, 178);
+            this.thrdGearLabel.Name = "thrdGearLabel";
+            this.thrdGearLabel.Size = new System.Drawing.Size(13, 13);
+            this.thrdGearLabel.TabIndex = 24;
+            this.thrdGearLabel.Text = "3";
+            this.thrdGearLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // ffthGearLabel
+            // 
+            this.ffthGearLabel.AutoSize = true;
+            this.ffthGearLabel.Location = new System.Drawing.Point(101, 178);
+            this.ffthGearLabel.Name = "ffthGearLabel";
+            this.ffthGearLabel.Size = new System.Drawing.Size(13, 13);
+            this.ffthGearLabel.TabIndex = 25;
+            this.ffthGearLabel.Text = "5";
+            this.ffthGearLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // rvrsGearLabel
+            // 
+            this.rvrsGearLabel.AutoSize = true;
+            this.rvrsGearLabel.Location = new System.Drawing.Point(9, 204);
+            this.rvrsGearLabel.Name = "rvrsGearLabel";
+            this.rvrsGearLabel.Size = new System.Drawing.Size(15, 13);
+            this.rvrsGearLabel.TabIndex = 26;
+            this.rvrsGearLabel.Text = "R";
+            this.rvrsGearLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // scndGearLabel
+            // 
+            this.scndGearLabel.AutoSize = true;
+            this.scndGearLabel.Location = new System.Drawing.Point(33, 332);
+            this.scndGearLabel.Name = "scndGearLabel";
+            this.scndGearLabel.Size = new System.Drawing.Size(13, 13);
+            this.scndGearLabel.TabIndex = 27;
+            this.scndGearLabel.Text = "2";
+            this.scndGearLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // frthGearLabel
+            // 
+            this.frthGearLabel.AutoSize = true;
+            this.frthGearLabel.Location = new System.Drawing.Point(66, 332);
+            this.frthGearLabel.Name = "frthGearLabel";
+            this.frthGearLabel.Size = new System.Drawing.Size(13, 13);
+            this.frthGearLabel.TabIndex = 28;
+            this.frthGearLabel.Text = "4";
+            this.frthGearLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // sxthGearLabel
+            // 
+            this.sxthGearLabel.AutoSize = true;
+            this.sxthGearLabel.Location = new System.Drawing.Point(101, 332);
+            this.sxthGearLabel.Name = "sxthGearLabel";
+            this.sxthGearLabel.Size = new System.Drawing.Size(13, 13);
+            this.sxthGearLabel.TabIndex = 29;
+            this.sxthGearLabel.Text = "6";
+            this.sxthGearLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(12, 357);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(61, 13);
+            this.label2.TabIndex = 30;
+            this.label2.Text = "Total shifts:";
+            // 
+            // ttlshift
+            // 
+            this.ttlshift.AutoSize = true;
+            this.ttlshift.Location = new System.Drawing.Point(12, 379);
+            this.ttlshift.Name = "ttlshift";
+            this.ttlshift.Size = new System.Drawing.Size(13, 13);
+            this.ttlshift.TabIndex = 31;
+            this.ttlshift.Text = "0";
+            // 
             // H_Shifter
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.ClientSize = new System.Drawing.Size(993, 727);
+            this.Controls.Add(this.ttlshift);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.sxthGearLabel);
+            this.Controls.Add(this.frthGearLabel);
+            this.Controls.Add(this.scndGearLabel);
+            this.Controls.Add(this.rvrsGearLabel);
+            this.Controls.Add(this.ffthGearLabel);
+            this.Controls.Add(this.thrdGearLabel);
+            this.Controls.Add(this.frstGearLabel);
+            this.Controls.Add(this.pictureBox2);
+            this.Controls.Add(this.label1);
+            this.Controls.Add(this.pictureBox1);
+            this.Controls.Add(this.saveButton);
             this.Controls.Add(this.resetImageButton);
             this.Controls.Add(this.gearRightNow);
             this.Controls.Add(this.colorPanelR);
@@ -258,10 +418,13 @@
             this.Controls.Add(this.axisBox);
             this.Controls.Add(this.activateControllerButton);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "H_Shifter";
-            this.Text = "Form1";
+            this.Text = "Analogstick to 6 gear shifter";
             ((System.ComponentModel.ISupportInitialize)(this.axisBox)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.overlayBox)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -288,6 +451,19 @@
         private System.Windows.Forms.Panel colorPanelR;
         private System.Windows.Forms.Label gearRightNow;
         private System.Windows.Forms.Button resetImageButton;
+        private System.Windows.Forms.Button saveButton;
+        private System.Windows.Forms.PictureBox pictureBox1;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.PictureBox pictureBox2;
+        private System.Windows.Forms.Label frstGearLabel;
+        private System.Windows.Forms.Label thrdGearLabel;
+        private System.Windows.Forms.Label ffthGearLabel;
+        private System.Windows.Forms.Label rvrsGearLabel;
+        private System.Windows.Forms.Label scndGearLabel;
+        private System.Windows.Forms.Label frthGearLabel;
+        private System.Windows.Forms.Label sxthGearLabel;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Label ttlshift;
     }
 }
 
