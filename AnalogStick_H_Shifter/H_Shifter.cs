@@ -548,7 +548,7 @@ namespace AnalogStick_H_Shifter
             INPUT[] Inputs = new INPUT[1];
             INPUT Input = new INPUT();
 
-            Input.type = 1; // 1 = Keyboard Input
+            Input.type = WindowsAPI.1; // 1 = Keyboard Input
             Input.U.ki.wScan = key;
             Input.U.ki.dwFlags = KEYEVENTF.KEYUP | KEYEVENTF.SCANCODE;
             Inputs[0] = Input;
