@@ -489,7 +489,7 @@ namespace AnalogStick_H_Shifter
         int getTotalShifts()
         {
             int tmp = 0;
-            
+
             for (int i = 0; i < shiftCounter.Length; i++)
             {
                 tmp += shiftCounter[i];
@@ -530,6 +530,13 @@ namespace AnalogStick_H_Shifter
             }
         }
 
+        private void button1_Click(object sender, EventArgs e)
+        {
+            System.Threading.Thread.Sleep(500);
+
+            SendInputWithAPI(ScanCodeShort.KEY_A);
+        }
+
         void SendInputWithAPI(ScanCodeShort key)
         {
             INPUT[] Inputs = new INPUT[1];
@@ -539,7 +546,6 @@ namespace AnalogStick_H_Shifter
             Input.U.ki.wScan = key;
             Input.U.ki.dwFlags = KEYEVENTF.SCANCODE;
             Inputs[0] = Input;
-
             SendInput(1, Inputs, INPUT.Size);
         }
 
@@ -548,7 +554,7 @@ namespace AnalogStick_H_Shifter
             INPUT[] Inputs = new INPUT[1];
             INPUT Input = new INPUT();
 
-            Input.type = WindowsAPI.1; // 1 = Keyboard Input
+            Input.type = 1; // 1 = Keyboard Input
             Input.U.ki.wScan = key;
             Input.U.ki.dwFlags = KEYEVENTF.KEYUP | KEYEVENTF.SCANCODE;
             Inputs[0] = Input;
@@ -556,15 +562,6 @@ namespace AnalogStick_H_Shifter
             SendInput(1, Inputs, INPUT.Size);
         }
 
-        /// <summary>
-        /// Writes the given object instance to a binary file.
-        /// <para>Object type (and all child types) must be decorated with the [Serializable] attribute.</para>
-        /// <para>To prevent a variable from being serialized, decorate it with the [NonSerialized] attribute; cannot be applied to properties.</para>
-        /// </summary>
-        /// <typeparam name="T">The type of object being written to the XML file.</typeparam>
-        /// <param name="filePath">The file path to write the object instance to.</param>
-        /// <param name="objectToWrite">The object instance to write to the XML file.</param>
-        /// <param name="append">If false the file will be overwritten if it already exists. If true the contents will be appended to the file.</param>
         public static void WriteToBinaryFile<T>(string filePath, T objectToWrite, bool append = false)
         {
             using (Stream stream = File.Open(filePath, append ? FileMode.Append : FileMode.Create))
@@ -574,12 +571,6 @@ namespace AnalogStick_H_Shifter
             }
         }
 
-        /// <summary>
-        /// Reads an object instance from a binary file.
-        /// </summary>
-        /// <typeparam name="T">The type of object to read from the XML.</typeparam>
-        /// <param name="filePath">The file path to read the object instance from.</param>
-        /// <returns>Returns a new instance of the object read from the binary file.</returns>
         public static T ReadFromBinaryFile<T>(string filePath)
         {
             using (Stream stream = File.Open(filePath, FileMode.Open))
@@ -589,17 +580,10 @@ namespace AnalogStick_H_Shifter
             }
         }
 
-        /// <summary>
-        /// Declaration of external SendInput method
-        /// </summary>
         [DllImport("user32.dll")]
-        internal static extern uint SendInput(
-            uint nInputs,
-            [MarshalAs(UnmanagedType.LPArray), In] INPUT[] pInputs,
-            int cbSize);
+        internal static extern uint SendInput(uint nInputs, [MarshalAs(UnmanagedType.LPArray), In] INPUT[] pInputs, int cbSize);
 
 
-        // Declare the INPUT struct
         [StructLayout(LayoutKind.Sequential)]
         public struct INPUT
         {
@@ -611,54 +595,11 @@ namespace AnalogStick_H_Shifter
             }
         }
 
-        // Declare the InputUnion struct
         [StructLayout(LayoutKind.Explicit)]
         internal struct InputUnion
         {
             [FieldOffset(0)]
-            internal MOUSEINPUT mi;
-            [FieldOffset(0)]
             internal KEYBDINPUT ki;
-            [FieldOffset(0)]
-            internal HARDWAREINPUT hi;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct MOUSEINPUT
-        {
-            internal int dx;
-            internal int dy;
-            internal MouseEventDataXButtons mouseData;
-            internal MOUSEEVENTF dwFlags;
-            internal uint time;
-            internal UIntPtr dwExtraInfo;
-        }
-
-        [Flags]
-        internal enum MouseEventDataXButtons : uint
-        {
-            Nothing = 0x00000000,
-            XBUTTON1 = 0x00000001,
-            XBUTTON2 = 0x00000002
-        }
-
-        [Flags]
-        internal enum MOUSEEVENTF : uint
-        {
-            ABSOLUTE = 0x8000,
-            HWHEEL = 0x01000,
-            MOVE = 0x0001,
-            MOVE_NOCOALESCE = 0x2000,
-            LEFTDOWN = 0x0002,
-            LEFTUP = 0x0004,
-            RIGHTDOWN = 0x0008,
-            RIGHTUP = 0x0010,
-            MIDDLEDOWN = 0x0020,
-            MIDDLEUP = 0x0040,
-            VIRTUALDESK = 0x4000,
-            WHEEL = 0x0800,
-            XDOWN = 0x0080,
-            XUP = 0x0100
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -1549,18 +1490,5 @@ namespace AnalogStick_H_Shifter
             PA1 = 0,
             OEM_CLEAR = 0,
         }
-
-        /// <summary>
-        /// Define HARDWAREINPUT struct
-        /// </summary>
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct HARDWAREINPUT
-        {
-            internal int uMsg;
-            internal short wParamL;
-            internal short wParamH;
-        }
-
-        
     }
 }

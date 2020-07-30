@@ -61,6 +61,7 @@
             this.sxthGearLabel = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.ttlshift = new System.Windows.Forms.Label();
+            this.button1 = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.axisBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.overlayBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
@@ -379,12 +380,23 @@
             this.ttlshift.TabIndex = 31;
             this.ttlshift.Text = "0";
             // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(863, 430);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(117, 45);
+            this.button1.TabIndex = 32;
+            this.button1.Text = "Test";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
+            // 
             // H_Shifter
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.ClientSize = new System.Drawing.Size(993, 727);
+            this.Controls.Add(this.button1);
             this.Controls.Add(this.ttlshift);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.sxthGearLabel);
@@ -464,6 +476,7 @@
         private System.Windows.Forms.Label sxthGearLabel;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label ttlshift;
+        private System.Windows.Forms.Button button1;
     }
 }
 
