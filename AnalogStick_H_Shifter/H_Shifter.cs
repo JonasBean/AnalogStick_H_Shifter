@@ -1,5 +1,8 @@
-﻿using SharpDX.XInput;
+﻿using SharpDX.Direct3D;
+using SharpDX.DirectInput;
+using SharpDX.XInput;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.IO;
@@ -11,6 +14,9 @@ namespace AnalogStick_H_Shifter
     public partial class H_Shifter : Form
     {
         XInputController xinput = new XInputController();
+        DirectInputController dinput;
+
+        public bool useXInput = true;
 
         public Point rightThumb = new Point(0, 0);
         public Point mouseCoords = new Point(0, 0);
@@ -96,7 +102,11 @@ namespace AnalogStick_H_Shifter
             overlayBox_Click(null, null);
             overlayBox.Image = overlayImage;
 
+            //xinput = new XInputController();
+            //dinput = new DirectInputController(joyStickListBox, false);
+
             xinput.Update();
+            //dinput.Update();
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)
@@ -329,16 +339,38 @@ namespace AnalogStick_H_Shifter
                 if (bGWorker.CancellationPending)
                     break;
 
-                xinput.Update();
+                double relStickX;
+                double relStickY;
 
-                double relStickX = axisSize * ((double)xinput.gamepad.RightThumbX + 32768) / 65536;
-                double relStickY = axisSize * ((double)xinput.gamepad.RightThumbY + 32768) / 65536;
+                if (useXInput)
+                {
+                    xinput.Update();
+                    relStickX = axisSize * ((double)xinput.gamepad.RightThumbX + 32768) / 65536;
+                    relStickY = axisSize * ((double)xinput.gamepad.RightThumbY + 32768) / 65536;
+                }
+                else
+                {
+                    dinput.Update();
+                    relStickX = axisSize * ((double)dinput.joystickPosition.X) / 65536;
+                    relStickY = axisSize * ((double)dinput.joystickPosition.Y) / 65536;
+                }
 
                 int relStickXInt = Convert.ToInt32(relStickX);
                 int relStickYInt = Convert.ToInt32(relStickY);
 
-                Point stick = new Point(relStickXInt, axisSize - relStickYInt);
-                Rectangle axisPosition = new Rectangle(relStickXInt, axisSize - relStickYInt, 10, 10);
+                Point stick;
+                Rectangle axisPosition;
+
+                if (useXInput)
+                {
+                    stick = new Point(relStickXInt, axisSize - relStickYInt);
+                    axisPosition = new Rectangle(relStickXInt, axisSize - relStickYInt, 10, 10);
+                }
+                else
+                {
+                    stick = new Point(relStickXInt, relStickYInt);
+                    axisPosition = new Rectangle(relStickXInt, relStickYInt, 10, 10);
+                }
 
                 try
                 {
@@ -401,7 +433,7 @@ namespace AnalogStick_H_Shifter
                     }
 
                     axisBox.Image = axisImage;
-                    System.Threading.Thread.Sleep(50);
+                    System.Threading.Thread.Sleep(70);
                 }
                 catch (Exception) { }
             } while (true);
@@ -411,6 +443,7 @@ namespace AnalogStick_H_Shifter
         {
 
             xinput.recognizedGear = e.ProgressPercentage.ToString();
+            //dinput.recognizedGear = e.ProgressPercentage.ToString();
 
             if (previousGearInBackground != e.ProgressPercentage)
             {
@@ -425,6 +458,7 @@ namespace AnalogStick_H_Shifter
 
                 previousGearInBackground = e.ProgressPercentage;
                 xinput.recognizedGear = e.ProgressPercentage.ToString();
+                //dinput.recognizedGear = e.ProgressPercentage.ToString();
 
                 switch (previousGearInBackground - 1)
                 {
@@ -483,6 +517,8 @@ namespace AnalogStick_H_Shifter
             else
             {
                 xinput.recognizedGear = "";
+                //dinput.recognizedGear = "";
+
             }
         }
 
@@ -516,6 +552,7 @@ namespace AnalogStick_H_Shifter
             public XInputController()
             {
                 controller = new Controller(UserIndex.One);
+
                 connected = controller.IsConnected;
             }
 
@@ -530,11 +567,88 @@ namespace AnalogStick_H_Shifter
             }
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        class DirectInputController
         {
-            System.Threading.Thread.Sleep(500);
+            DirectInput directInput = new DirectInput();
+            public bool connected = false;
+            Guid joystickGuid;
 
-            SendInputWithAPI(ScanCodeShort.KEY_A);
+            public string recognizedGear = "";
+
+            public Joystick joystick { get; set; }
+            public Point joystickPosition { get; set; }
+            public Point previousJoystickPosition { get; set; }
+
+            public DirectInputController(ComboBox joyStickListBox, bool selectBoxChanged)
+            {
+                // Find all joysticks connected to the system
+                IList<DeviceInstance> connectedJoysticks = new List<DeviceInstance>();
+                IList<string> connectedJoysticksString = new List<string>();
+
+                // - look for joysticks
+                foreach (var deviceInstance in directInput.GetDevices(SharpDX.DirectInput.DeviceType.Joystick, DeviceEnumerationFlags.AllDevices))
+                {
+                    connectedJoysticks.Add(deviceInstance);
+                    connectedJoysticksString.Add(deviceInstance.InstanceName);
+                }
+
+                if (!selectBoxChanged)
+                {
+                    joyStickListBox.DataSource = connectedJoysticksString;
+                }
+
+                //Console.WriteLine(joyStickListBox.SelectedIndex);
+
+                if (connectedJoysticks.Count > 0)
+                    joystickGuid = connectedJoysticks[joyStickListBox.SelectedIndex].InstanceGuid;
+
+                // If Joystick not found, throws an error
+                if (joystickGuid == Guid.Empty)
+                {
+                    Console.WriteLine("No directinput joystick/Gamepad found.");
+                }
+                else
+                {
+                    connected = true;
+                    // Instantiate the joystick
+                    joystick = new Joystick(directInput, joystickGuid);
+                    Console.WriteLine("Found Joystick/Gamepad with GUID: {0}", joystickGuid);
+
+                    // Set BufferSize in order to use buffered data.
+                    joystick.Properties.BufferSize = 32;
+
+                    // Acquire the joystick
+                    joystick.Acquire();
+                }
+            }
+
+            public void Update()
+            {
+                if (!connected)
+                    return;
+
+                int x = -5000, y = -5000;
+
+                joystick.Poll();
+                var datas = joystick.GetBufferedData();
+                foreach (var state in datas)
+                {
+                    if (state.Offset == JoystickOffset.X)
+                    {
+                        x = state.Value;
+                    }
+
+                    if (state.Offset == JoystickOffset.Y)
+                    {
+                        y = state.Value;
+                    }
+
+                    if (x != -5000 && y != -5000)
+                    {
+                        joystickPosition = new Point(x, y);
+                    }
+                }
+            }
         }
 
         void SendInputWithAPI(ScanCodeShort key)
@@ -1489,6 +1603,25 @@ namespace AnalogStick_H_Shifter
             NONAME = 0,
             PA1 = 0,
             OEM_CLEAR = 0,
+        }
+
+        private void directInputRadiobutton_Clicked(object sender, EventArgs e)
+        {
+            directInputRadiobutton.Checked = true;
+            xInputRadioButton.Checked = false;
+            useXInput = false;
+        }
+
+        private void xInputRadioButton_Clicked(object sender, EventArgs e)
+        {
+            xInputRadioButton.Checked = true;
+            directInputRadiobutton.Checked = false;
+            useXInput = true;
+        }
+
+        private void joyStickListBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            dinput = new DirectInputController(joyStickListBox, true);
         }
     }
 }

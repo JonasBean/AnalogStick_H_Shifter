@@ -61,7 +61,9 @@
             this.sxthGearLabel = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.ttlshift = new System.Windows.Forms.Label();
-            this.button1 = new System.Windows.Forms.Button();
+            this.xInputRadioButton = new System.Windows.Forms.RadioButton();
+            this.directInputRadiobutton = new System.Windows.Forms.RadioButton();
+            this.joyStickListBox = new System.Windows.Forms.ComboBox();
             ((System.ComponentModel.ISupportInitialize)(this.axisBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.overlayBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
@@ -380,15 +382,38 @@
             this.ttlshift.TabIndex = 31;
             this.ttlshift.Text = "0";
             // 
-            // button1
+            // xInputRadioButton
             // 
-            this.button1.Location = new System.Drawing.Point(863, 430);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(117, 45);
-            this.button1.TabIndex = 32;
-            this.button1.Text = "Test";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.xInputRadioButton.AutoSize = true;
+            this.xInputRadioButton.Checked = true;
+            this.xInputRadioButton.Location = new System.Drawing.Point(841, 393);
+            this.xInputRadioButton.Name = "xInputRadioButton";
+            this.xInputRadioButton.Size = new System.Drawing.Size(139, 17);
+            this.xInputRadioButton.TabIndex = 32;
+            this.xInputRadioButton.TabStop = true;
+            this.xInputRadioButton.Text = "X Input (Xbox Controller)";
+            this.xInputRadioButton.UseVisualStyleBackColor = true;
+            this.xInputRadioButton.Click += new System.EventHandler(this.xInputRadioButton_Clicked);
+            // 
+            // directInputRadiobutton
+            // 
+            this.directInputRadiobutton.AutoSize = true;
+            this.directInputRadiobutton.Location = new System.Drawing.Point(841, 416);
+            this.directInputRadiobutton.Name = "directInputRadiobutton";
+            this.directInputRadiobutton.Size = new System.Drawing.Size(132, 17);
+            this.directInputRadiobutton.TabIndex = 33;
+            this.directInputRadiobutton.Text = "Direct Input (Joysticks)";
+            this.directInputRadiobutton.UseVisualStyleBackColor = true;
+            this.directInputRadiobutton.Click += new System.EventHandler(this.directInputRadiobutton_Clicked);
+            // 
+            // joyStickListBox
+            // 
+            this.joyStickListBox.FormattingEnabled = true;
+            this.joyStickListBox.Location = new System.Drawing.Point(838, 439);
+            this.joyStickListBox.Name = "joyStickListBox";
+            this.joyStickListBox.Size = new System.Drawing.Size(142, 21);
+            this.joyStickListBox.TabIndex = 34;
+            this.joyStickListBox.SelectedIndexChanged += new System.EventHandler(this.joyStickListBox_SelectedIndexChanged);
             // 
             // H_Shifter
             // 
@@ -396,7 +421,9 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.ClientSize = new System.Drawing.Size(993, 727);
-            this.Controls.Add(this.button1);
+            this.Controls.Add(this.joyStickListBox);
+            this.Controls.Add(this.directInputRadiobutton);
+            this.Controls.Add(this.xInputRadioButton);
             this.Controls.Add(this.ttlshift);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.sxthGearLabel);
@@ -476,7 +503,9 @@
         private System.Windows.Forms.Label sxthGearLabel;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label ttlshift;
-        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.RadioButton xInputRadioButton;
+        private System.Windows.Forms.RadioButton directInputRadiobutton;
+        private System.Windows.Forms.ComboBox joyStickListBox;
     }
 }
 
