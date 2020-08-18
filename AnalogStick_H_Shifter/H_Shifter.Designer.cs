@@ -64,6 +64,10 @@
             this.xInputRadioButton = new System.Windows.Forms.RadioButton();
             this.directInputRadiobutton = new System.Windows.Forms.RadioButton();
             this.joyStickListBox = new System.Windows.Forms.ComboBox();
+            this.savedLayoutsListBox = new System.Windows.Forms.ListBox();
+            this.loadButton = new System.Windows.Forms.Button();
+            this.colorDialog1 = new System.Windows.Forms.ColorDialog();
+            this.layoutNameBox = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.axisBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.overlayBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
@@ -104,7 +108,7 @@
             // 
             this.gear1Button.Location = new System.Drawing.Point(863, 12);
             this.gear1Button.Name = "gear1Button";
-            this.gear1Button.Size = new System.Drawing.Size(117, 45);
+            this.gear1Button.Size = new System.Drawing.Size(117, 30);
             this.gear1Button.TabIndex = 4;
             this.gear1Button.Text = "First gear";
             this.gear1Button.UseVisualStyleBackColor = true;
@@ -112,9 +116,9 @@
             // 
             // gear2Button
             // 
-            this.gear2Button.Location = new System.Drawing.Point(863, 63);
+            this.gear2Button.Location = new System.Drawing.Point(863, 48);
             this.gear2Button.Name = "gear2Button";
-            this.gear2Button.Size = new System.Drawing.Size(117, 45);
+            this.gear2Button.Size = new System.Drawing.Size(117, 30);
             this.gear2Button.TabIndex = 5;
             this.gear2Button.Text = "Second gear";
             this.gear2Button.UseVisualStyleBackColor = true;
@@ -122,9 +126,9 @@
             // 
             // gear3Button
             // 
-            this.gear3Button.Location = new System.Drawing.Point(863, 114);
+            this.gear3Button.Location = new System.Drawing.Point(863, 84);
             this.gear3Button.Name = "gear3Button";
-            this.gear3Button.Size = new System.Drawing.Size(117, 45);
+            this.gear3Button.Size = new System.Drawing.Size(117, 30);
             this.gear3Button.TabIndex = 6;
             this.gear3Button.Text = "Third gear";
             this.gear3Button.UseVisualStyleBackColor = true;
@@ -132,9 +136,9 @@
             // 
             // gear4Button
             // 
-            this.gear4Button.Location = new System.Drawing.Point(863, 165);
+            this.gear4Button.Location = new System.Drawing.Point(863, 120);
             this.gear4Button.Name = "gear4Button";
-            this.gear4Button.Size = new System.Drawing.Size(117, 45);
+            this.gear4Button.Size = new System.Drawing.Size(117, 30);
             this.gear4Button.TabIndex = 7;
             this.gear4Button.Text = "Fourth gear";
             this.gear4Button.UseVisualStyleBackColor = true;
@@ -142,9 +146,9 @@
             // 
             // gear5Button
             // 
-            this.gear5Button.Location = new System.Drawing.Point(863, 216);
+            this.gear5Button.Location = new System.Drawing.Point(863, 156);
             this.gear5Button.Name = "gear5Button";
-            this.gear5Button.Size = new System.Drawing.Size(117, 45);
+            this.gear5Button.Size = new System.Drawing.Size(117, 30);
             this.gear5Button.TabIndex = 8;
             this.gear5Button.Text = "Fifth gear";
             this.gear5Button.UseVisualStyleBackColor = true;
@@ -152,9 +156,9 @@
             // 
             // gear6Button
             // 
-            this.gear6Button.Location = new System.Drawing.Point(863, 267);
+            this.gear6Button.Location = new System.Drawing.Point(863, 192);
             this.gear6Button.Name = "gear6Button";
-            this.gear6Button.Size = new System.Drawing.Size(117, 45);
+            this.gear6Button.Size = new System.Drawing.Size(117, 30);
             this.gear6Button.TabIndex = 9;
             this.gear6Button.Text = "Sixth gear";
             this.gear6Button.UseVisualStyleBackColor = true;
@@ -162,9 +166,9 @@
             // 
             // gear9Button
             // 
-            this.gear9Button.Location = new System.Drawing.Point(863, 318);
+            this.gear9Button.Location = new System.Drawing.Point(863, 228);
             this.gear9Button.Name = "gear9Button";
-            this.gear9Button.Size = new System.Drawing.Size(117, 45);
+            this.gear9Button.Size = new System.Drawing.Size(117, 30);
             this.gear9Button.TabIndex = 10;
             this.gear9Button.Text = "Reverse gear";
             this.gear9Button.UseVisualStyleBackColor = true;
@@ -176,67 +180,67 @@
             this.colorPanel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.colorPanel1.Location = new System.Drawing.Point(838, 13);
             this.colorPanel1.Name = "colorPanel1";
-            this.colorPanel1.Size = new System.Drawing.Size(19, 43);
+            this.colorPanel1.Size = new System.Drawing.Size(19, 30);
             this.colorPanel1.TabIndex = 11;
             // 
             // colorPanel2
             // 
             this.colorPanel2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(128)))), ((int)(((byte)(0)))));
             this.colorPanel2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.colorPanel2.Location = new System.Drawing.Point(838, 64);
+            this.colorPanel2.Location = new System.Drawing.Point(838, 49);
             this.colorPanel2.Name = "colorPanel2";
-            this.colorPanel2.Size = new System.Drawing.Size(19, 43);
+            this.colorPanel2.Size = new System.Drawing.Size(19, 30);
             this.colorPanel2.TabIndex = 12;
             // 
             // colorPanel3
             // 
             this.colorPanel3.BackColor = System.Drawing.Color.Yellow;
             this.colorPanel3.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.colorPanel3.Location = new System.Drawing.Point(838, 115);
+            this.colorPanel3.Location = new System.Drawing.Point(838, 85);
             this.colorPanel3.Name = "colorPanel3";
-            this.colorPanel3.Size = new System.Drawing.Size(19, 43);
+            this.colorPanel3.Size = new System.Drawing.Size(19, 30);
             this.colorPanel3.TabIndex = 13;
             // 
             // colorPanel4
             // 
             this.colorPanel4.BackColor = System.Drawing.Color.Lime;
             this.colorPanel4.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.colorPanel4.Location = new System.Drawing.Point(838, 166);
+            this.colorPanel4.Location = new System.Drawing.Point(838, 121);
             this.colorPanel4.Name = "colorPanel4";
-            this.colorPanel4.Size = new System.Drawing.Size(19, 43);
+            this.colorPanel4.Size = new System.Drawing.Size(19, 30);
             this.colorPanel4.TabIndex = 13;
             // 
             // colorPanel5
             // 
             this.colorPanel5.BackColor = System.Drawing.Color.Aqua;
             this.colorPanel5.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.colorPanel5.Location = new System.Drawing.Point(838, 217);
+            this.colorPanel5.Location = new System.Drawing.Point(838, 157);
             this.colorPanel5.Name = "colorPanel5";
-            this.colorPanel5.Size = new System.Drawing.Size(19, 43);
+            this.colorPanel5.Size = new System.Drawing.Size(19, 30);
             this.colorPanel5.TabIndex = 13;
             // 
             // colorPanel6
             // 
             this.colorPanel6.BackColor = System.Drawing.Color.Blue;
             this.colorPanel6.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.colorPanel6.Location = new System.Drawing.Point(838, 268);
+            this.colorPanel6.Location = new System.Drawing.Point(838, 193);
             this.colorPanel6.Name = "colorPanel6";
-            this.colorPanel6.Size = new System.Drawing.Size(19, 43);
+            this.colorPanel6.Size = new System.Drawing.Size(19, 30);
             this.colorPanel6.TabIndex = 13;
             // 
             // colorPanelR
             // 
             this.colorPanelR.BackColor = System.Drawing.Color.Fuchsia;
             this.colorPanelR.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.colorPanelR.Location = new System.Drawing.Point(838, 319);
+            this.colorPanelR.Location = new System.Drawing.Point(838, 229);
             this.colorPanelR.Name = "colorPanelR";
-            this.colorPanelR.Size = new System.Drawing.Size(19, 43);
+            this.colorPanelR.Size = new System.Drawing.Size(19, 30);
             this.colorPanelR.TabIndex = 13;
             // 
             // gearRightNow
             // 
             this.gearRightNow.AutoSize = true;
-            this.gearRightNow.Location = new System.Drawing.Point(23, 532);
+            this.gearRightNow.Location = new System.Drawing.Point(23, 630);
             this.gearRightNow.Name = "gearRightNow";
             this.gearRightNow.Size = new System.Drawing.Size(15, 13);
             this.gearRightNow.TabIndex = 16;
@@ -254,11 +258,11 @@
             // 
             // saveButton
             // 
-            this.saveButton.Location = new System.Drawing.Point(12, 115);
+            this.saveButton.Location = new System.Drawing.Point(12, 281);
             this.saveButton.Name = "saveButton";
-            this.saveButton.Size = new System.Drawing.Size(114, 45);
+            this.saveButton.Size = new System.Drawing.Size(110, 24);
             this.saveButton.TabIndex = 19;
-            this.saveButton.Text = "Save gear layout";
+            this.saveButton.Text = "Save layout";
             this.saveButton.UseVisualStyleBackColor = true;
             this.saveButton.Click += new System.EventHandler(this.saveButton_Click);
             // 
@@ -287,7 +291,7 @@
             // pictureBox2
             // 
             this.pictureBox2.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox2.Image")));
-            this.pictureBox2.Location = new System.Drawing.Point(12, 204);
+            this.pictureBox2.Location = new System.Drawing.Point(12, 393);
             this.pictureBox2.Name = "pictureBox2";
             this.pictureBox2.Size = new System.Drawing.Size(114, 120);
             this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -297,7 +301,7 @@
             // frstGearLabel
             // 
             this.frstGearLabel.AutoSize = true;
-            this.frstGearLabel.Location = new System.Drawing.Point(33, 178);
+            this.frstGearLabel.Location = new System.Drawing.Point(33, 367);
             this.frstGearLabel.Name = "frstGearLabel";
             this.frstGearLabel.Size = new System.Drawing.Size(13, 13);
             this.frstGearLabel.TabIndex = 23;
@@ -307,7 +311,7 @@
             // thrdGearLabel
             // 
             this.thrdGearLabel.AutoSize = true;
-            this.thrdGearLabel.Location = new System.Drawing.Point(66, 178);
+            this.thrdGearLabel.Location = new System.Drawing.Point(66, 367);
             this.thrdGearLabel.Name = "thrdGearLabel";
             this.thrdGearLabel.Size = new System.Drawing.Size(13, 13);
             this.thrdGearLabel.TabIndex = 24;
@@ -317,7 +321,7 @@
             // ffthGearLabel
             // 
             this.ffthGearLabel.AutoSize = true;
-            this.ffthGearLabel.Location = new System.Drawing.Point(101, 178);
+            this.ffthGearLabel.Location = new System.Drawing.Point(101, 367);
             this.ffthGearLabel.Name = "ffthGearLabel";
             this.ffthGearLabel.Size = new System.Drawing.Size(13, 13);
             this.ffthGearLabel.TabIndex = 25;
@@ -327,7 +331,7 @@
             // rvrsGearLabel
             // 
             this.rvrsGearLabel.AutoSize = true;
-            this.rvrsGearLabel.Location = new System.Drawing.Point(9, 204);
+            this.rvrsGearLabel.Location = new System.Drawing.Point(9, 393);
             this.rvrsGearLabel.Name = "rvrsGearLabel";
             this.rvrsGearLabel.Size = new System.Drawing.Size(15, 13);
             this.rvrsGearLabel.TabIndex = 26;
@@ -337,7 +341,7 @@
             // scndGearLabel
             // 
             this.scndGearLabel.AutoSize = true;
-            this.scndGearLabel.Location = new System.Drawing.Point(33, 332);
+            this.scndGearLabel.Location = new System.Drawing.Point(33, 521);
             this.scndGearLabel.Name = "scndGearLabel";
             this.scndGearLabel.Size = new System.Drawing.Size(13, 13);
             this.scndGearLabel.TabIndex = 27;
@@ -347,7 +351,7 @@
             // frthGearLabel
             // 
             this.frthGearLabel.AutoSize = true;
-            this.frthGearLabel.Location = new System.Drawing.Point(66, 332);
+            this.frthGearLabel.Location = new System.Drawing.Point(66, 521);
             this.frthGearLabel.Name = "frthGearLabel";
             this.frthGearLabel.Size = new System.Drawing.Size(13, 13);
             this.frthGearLabel.TabIndex = 28;
@@ -357,7 +361,7 @@
             // sxthGearLabel
             // 
             this.sxthGearLabel.AutoSize = true;
-            this.sxthGearLabel.Location = new System.Drawing.Point(101, 332);
+            this.sxthGearLabel.Location = new System.Drawing.Point(101, 521);
             this.sxthGearLabel.Name = "sxthGearLabel";
             this.sxthGearLabel.Size = new System.Drawing.Size(13, 13);
             this.sxthGearLabel.TabIndex = 29;
@@ -367,7 +371,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(12, 357);
+            this.label2.Location = new System.Drawing.Point(12, 546);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(61, 13);
             this.label2.TabIndex = 30;
@@ -376,7 +380,7 @@
             // ttlshift
             // 
             this.ttlshift.AutoSize = true;
-            this.ttlshift.Location = new System.Drawing.Point(12, 379);
+            this.ttlshift.Location = new System.Drawing.Point(12, 568);
             this.ttlshift.Name = "ttlshift";
             this.ttlshift.Size = new System.Drawing.Size(13, 13);
             this.ttlshift.TabIndex = 31;
@@ -386,7 +390,7 @@
             // 
             this.xInputRadioButton.AutoSize = true;
             this.xInputRadioButton.Checked = true;
-            this.xInputRadioButton.Location = new System.Drawing.Point(841, 393);
+            this.xInputRadioButton.Location = new System.Drawing.Point(841, 292);
             this.xInputRadioButton.Name = "xInputRadioButton";
             this.xInputRadioButton.Size = new System.Drawing.Size(139, 17);
             this.xInputRadioButton.TabIndex = 32;
@@ -398,7 +402,7 @@
             // directInputRadiobutton
             // 
             this.directInputRadiobutton.AutoSize = true;
-            this.directInputRadiobutton.Location = new System.Drawing.Point(841, 416);
+            this.directInputRadiobutton.Location = new System.Drawing.Point(841, 315);
             this.directInputRadiobutton.Name = "directInputRadiobutton";
             this.directInputRadiobutton.Size = new System.Drawing.Size(132, 17);
             this.directInputRadiobutton.TabIndex = 33;
@@ -409,11 +413,39 @@
             // joyStickListBox
             // 
             this.joyStickListBox.FormattingEnabled = true;
-            this.joyStickListBox.Location = new System.Drawing.Point(838, 439);
+            this.joyStickListBox.Location = new System.Drawing.Point(856, 338);
             this.joyStickListBox.Name = "joyStickListBox";
-            this.joyStickListBox.Size = new System.Drawing.Size(142, 21);
+            this.joyStickListBox.Size = new System.Drawing.Size(117, 21);
             this.joyStickListBox.TabIndex = 34;
             this.joyStickListBox.SelectedIndexChanged += new System.EventHandler(this.joyStickListBox_SelectedIndexChanged);
+            // 
+            // savedLayoutsListBox
+            // 
+            this.savedLayoutsListBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.savedLayoutsListBox.FormattingEnabled = true;
+            this.savedLayoutsListBox.Location = new System.Drawing.Point(12, 115);
+            this.savedLayoutsListBox.Name = "savedLayoutsListBox";
+            this.savedLayoutsListBox.Size = new System.Drawing.Size(114, 93);
+            this.savedLayoutsListBox.TabIndex = 35;
+            this.savedLayoutsListBox.SelectedIndexChanged += new System.EventHandler(this.savedLayoutsListBox_SelectedIndexChanged);
+            // 
+            // loadButton
+            // 
+            this.loadButton.Location = new System.Drawing.Point(12, 214);
+            this.loadButton.Name = "loadButton";
+            this.loadButton.Size = new System.Drawing.Size(110, 24);
+            this.loadButton.TabIndex = 36;
+            this.loadButton.Text = "Load layout";
+            this.loadButton.UseVisualStyleBackColor = true;
+            this.loadButton.Click += new System.EventHandler(this.loadButton_Click);
+            // 
+            // layoutNameBox
+            // 
+            this.layoutNameBox.Location = new System.Drawing.Point(12, 255);
+            this.layoutNameBox.Name = "layoutNameBox";
+            this.layoutNameBox.Size = new System.Drawing.Size(110, 20);
+            this.layoutNameBox.TabIndex = 37;
+            this.layoutNameBox.Text = "LayoutName";
             // 
             // H_Shifter
             // 
@@ -421,6 +453,9 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.ClientSize = new System.Drawing.Size(993, 727);
+            this.Controls.Add(this.layoutNameBox);
+            this.Controls.Add(this.loadButton);
+            this.Controls.Add(this.savedLayoutsListBox);
             this.Controls.Add(this.joyStickListBox);
             this.Controls.Add(this.directInputRadiobutton);
             this.Controls.Add(this.xInputRadioButton);
@@ -506,6 +541,10 @@
         private System.Windows.Forms.RadioButton xInputRadioButton;
         private System.Windows.Forms.RadioButton directInputRadiobutton;
         private System.Windows.Forms.ComboBox joyStickListBox;
+        private System.Windows.Forms.ListBox savedLayoutsListBox;
+        private System.Windows.Forms.Button loadButton;
+        private System.Windows.Forms.ColorDialog colorDialog1;
+        private System.Windows.Forms.TextBox layoutNameBox;
     }
 }
 

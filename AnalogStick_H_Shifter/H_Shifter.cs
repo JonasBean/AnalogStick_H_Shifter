@@ -1,5 +1,4 @@
-﻿using SharpDX.Direct3D;
-using SharpDX.DirectInput;
+﻿using SharpDX.DirectInput;
 using SharpDX.XInput;
 using System;
 using System.Collections.Generic;
@@ -17,6 +16,9 @@ namespace AnalogStick_H_Shifter
         DirectInputController dinput;
 
         public bool useXInput = true;
+
+        public string root = Path.GetDirectoryName(Application.ExecutablePath);
+        public string layoutFolder;
 
         public Point rightThumb = new Point(0, 0);
         public Point mouseCoords = new Point(0, 0);
@@ -45,6 +47,14 @@ namespace AnalogStick_H_Shifter
         {
             InitializeComponent();
 
+            layoutFolder = Path.Combine(root, "Layouts");
+            PopulateListBox();
+
+            if (savedLayoutsListBox.Items.Count != 0)
+            {
+                savedLayoutsListBox.SelectedIndex = 0;
+            }
+
             for (int i = 0; i < 7; i++)
             {
                 rectangles[i] = new Rectangle(0, 0, rectangleSize, rectangleSize);
@@ -69,12 +79,16 @@ namespace AnalogStick_H_Shifter
 
             try
             {
-                rectangles = ReadFromBinaryFile<Rectangle[]>(Path.GetDirectoryName(Application.ExecutablePath) + "//gearLayout");
-                Console.WriteLine("Gearlayout-File loaded successfully");
+                Directory.CreateDirectory(layoutFolder);
+                if (savedLayoutsListBox.Items.Count != 0)
+                {
+                    rectangles = ReadFromBinaryFile<Rectangle[]>(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
+                    Console.WriteLine("Gearlayout-Files loaded successfully");
+                }
             }
             catch (Exception)
             {
-                Console.WriteLine("Gearlayout-File not found");
+                Console.WriteLine("Gearlayout-Files not found");
             }
 
             try
@@ -107,6 +121,18 @@ namespace AnalogStick_H_Shifter
 
             xinput.Update();
             dinput.Update();
+        }
+
+        private void PopulateListBox()
+        {
+            savedLayoutsListBox.Items.Clear();
+            DirectoryInfo dinfo = new DirectoryInfo(layoutFolder);
+            FileInfo[] Files = dinfo.GetFiles("*.*");
+
+            foreach (FileInfo file in Files)
+            {
+                savedLayoutsListBox.Items.Add(file.Name);
+            }
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)
@@ -178,8 +204,8 @@ namespace AnalogStick_H_Shifter
 
         private void saveButton_Click(object sender, EventArgs e)
         {
-            // To save the characterSheet variable contents to a file.
-            WriteToBinaryFile(Path.GetDirectoryName(Application.ExecutablePath) + "//gearLayout", rectangles);
+            WriteToBinaryFile(layoutFolder + "//" + layoutNameBox.Text, rectangles);
+            PopulateListBox();
         }
 
         private void resetImageButton_Click(object sender, EventArgs e)
@@ -1666,6 +1692,18 @@ namespace AnalogStick_H_Shifter
         private void joyStickListBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             dinput = new DirectInputController(joyStickListBox, true);
+        }
+
+        private void loadButton_Click(object sender, EventArgs e)
+        {
+            rectangles = ReadFromBinaryFile<Rectangle[]>(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
+            refreshOverlay = true;
+            overlayBox_Click(null, null);
+        }
+
+        private void savedLayoutsListBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            layoutNameBox.Text = savedLayoutsListBox.SelectedItem.ToString();
         }
     }
 }
