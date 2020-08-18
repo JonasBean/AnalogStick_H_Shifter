@@ -13,7 +13,7 @@ namespace AnalogStick_H_Shifter
 {
     public partial class H_Shifter : Form
     {
-        XInputController xinput = new XInputController();
+        XInputController xinput;
         DirectInputController dinput;
 
         public bool useXInput = true;
@@ -102,11 +102,11 @@ namespace AnalogStick_H_Shifter
             overlayBox_Click(null, null);
             overlayBox.Image = overlayImage;
 
-            //xinput = new XInputController();
-            //dinput = new DirectInputController(joyStickListBox, false);
+            xinput = new XInputController();
+            dinput = new DirectInputController(joyStickListBox, false);
 
             xinput.Update();
-            //dinput.Update();
+            dinput.Update();
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)
@@ -433,7 +433,7 @@ namespace AnalogStick_H_Shifter
                     }
 
                     axisBox.Image = axisImage;
-                    System.Threading.Thread.Sleep(70);
+                    System.Threading.Thread.Sleep(30);
                 }
                 catch (Exception) { }
             } while (true);
@@ -441,10 +441,6 @@ namespace AnalogStick_H_Shifter
 
         void bGWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
-
-            xinput.recognizedGear = e.ProgressPercentage.ToString();
-            //dinput.recognizedGear = e.ProgressPercentage.ToString();
-
             if (previousGearInBackground != e.ProgressPercentage)
             {
                 if (e.ProgressPercentage == 11)
@@ -453,12 +449,13 @@ namespace AnalogStick_H_Shifter
                 }
                 else
                 {
+                    //Send Release Send for a cleaner signal when shifting directly from gear to gear
+                    SendInputWithAPI((ScanCodeShort)e.ProgressPercentage);
+                    Release((ScanCodeShort)e.ProgressPercentage);
                     SendInputWithAPI((ScanCodeShort)e.ProgressPercentage);
                 }
 
                 previousGearInBackground = e.ProgressPercentage;
-                xinput.recognizedGear = e.ProgressPercentage.ToString();
-                //dinput.recognizedGear = e.ProgressPercentage.ToString();
 
                 switch (previousGearInBackground - 1)
                 {
@@ -514,12 +511,6 @@ namespace AnalogStick_H_Shifter
                 WriteToBinaryFile(Path.GetDirectoryName(Application.ExecutablePath) + "//shiftCount", shiftCounter);
 
             }
-            else
-            {
-                xinput.recognizedGear = "";
-                //dinput.recognizedGear = "";
-
-            }
         }
 
         int getTotalShifts()
@@ -546,7 +537,7 @@ namespace AnalogStick_H_Shifter
             public bool connected = false;
             public int deadband = 2500;
 
-            public string recognizedGear = "";
+            //public string recognizedGear = "";
             public Gamepad gamepad { get; set; }
 
             public XInputController()
@@ -573,7 +564,7 @@ namespace AnalogStick_H_Shifter
             public bool connected = false;
             Guid joystickGuid;
 
-            public string recognizedGear = "";
+            //public string recognizedGear = "";
 
             public Joystick joystick { get; set; }
             public Point joystickPosition { get; set; }
