@@ -35,6 +35,9 @@
   <PropertyGroup>
     <ApplicationIcon>Software_logo.ico</ApplicationIcon>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>AnalogStick_H_Shifter.Program</StartupObject>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="SharpDX, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b4dcf0f35e5521f1, processorArchitecture=MSIL">
       <HintPath>..\packages\SharpDX.4.2.0\lib\net45\SharpDX.dll</HintPath>
@@ -89,6 +92,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
@@ -106,6 +110,10 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Logo_Neu_Clean_sub1MB.ico" />
+    <None Include="Resources\pictureBox1.png" />
+    <None Include="Resources\LogoNeu.png" />
+    <None Include="Resources\LogoNeu - Kopie.png" />
+    <None Include="Resources\YTLogo.png" />
     <Content Include="Software_logo.ico" />
     <Content Include="tier2_patron.ico" />
   </ItemGroup>

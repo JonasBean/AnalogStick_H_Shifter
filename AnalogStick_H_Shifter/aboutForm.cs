@@ -12,7 +12,7 @@ namespace AnalogStick_H_Shifter
             InitializeComponent();
 
             header.Font = new Font("Microsoft Sans Serif", 12, FontStyle.Bold, GraphicsUnit.Point, ((byte)(0)));
-            versionLabel.Text = "Beta Version " + Application.ProductVersion;
+            versionLabel.Text = "V " + Application.ProductVersion;
         }
 
         private void button1_Click(object sender, EventArgs e)

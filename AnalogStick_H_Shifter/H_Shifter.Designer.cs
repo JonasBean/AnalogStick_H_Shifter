@@ -30,8 +30,6 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(H_Shifter));
             this.activateControllerButton = new System.Windows.Forms.Button();
-            this.axisBox = new System.Windows.Forms.PictureBox();
-            this.overlayBox = new System.Windows.Forms.PictureBox();
             this.gear1Button = new System.Windows.Forms.Button();
             this.gear2Button = new System.Windows.Forms.Button();
             this.gear3Button = new System.Windows.Forms.Button();
@@ -49,9 +47,7 @@
             this.gearRightNow = new System.Windows.Forms.Label();
             this.resetImageButton = new System.Windows.Forms.Button();
             this.saveButton = new System.Windows.Forms.Button();
-            this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.label1 = new System.Windows.Forms.Label();
-            this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.frstGearLabel = new System.Windows.Forms.Label();
             this.thrdGearLabel = new System.Windows.Forms.Label();
             this.ffthGearLabel = new System.Windows.Forms.Label();
@@ -68,10 +64,16 @@
             this.loadButton = new System.Windows.Forms.Button();
             this.colorDialog1 = new System.Windows.Forms.ColorDialog();
             this.layoutNameBox = new System.Windows.Forms.TextBox();
-            ((System.ComponentModel.ISupportInitialize)(this.axisBox)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.overlayBox)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
+            this.pictureBox3 = new System.Windows.Forms.PictureBox();
+            this.pictureBox2 = new System.Windows.Forms.PictureBox();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.overlayBox = new System.Windows.Forms.PictureBox();
+            this.axisBox = new System.Windows.Forms.PictureBox();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox3)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.overlayBox)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.axisBox)).BeginInit();
             this.SuspendLayout();
             // 
             // activateControllerButton
@@ -83,26 +85,6 @@
             this.activateControllerButton.Text = "Activate";
             this.activateControllerButton.UseVisualStyleBackColor = true;
             this.activateControllerButton.Click += new System.EventHandler(this.activateControllerButton_Click);
-            // 
-            // axisBox
-            // 
-            this.axisBox.BackColor = System.Drawing.Color.White;
-            this.axisBox.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
-            this.axisBox.Location = new System.Drawing.Point(132, 12);
-            this.axisBox.Name = "axisBox";
-            this.axisBox.Size = new System.Drawing.Size(700, 700);
-            this.axisBox.TabIndex = 2;
-            this.axisBox.TabStop = false;
-            // 
-            // overlayBox
-            // 
-            this.overlayBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.overlayBox.Location = new System.Drawing.Point(132, 12);
-            this.overlayBox.Name = "overlayBox";
-            this.overlayBox.Size = new System.Drawing.Size(700, 700);
-            this.overlayBox.TabIndex = 3;
-            this.overlayBox.TabStop = false;
-            this.overlayBox.Click += new System.EventHandler(this.overlayBox_Click);
             // 
             // gear1Button
             // 
@@ -266,37 +248,14 @@
             this.saveButton.UseVisualStyleBackColor = true;
             this.saveButton.Click += new System.EventHandler(this.saveButton_Click);
             // 
-            // pictureBox1
-            // 
-            this.pictureBox1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pictureBox1.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
-            this.pictureBox1.Location = new System.Drawing.Point(838, 660);
-            this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(143, 52);
-            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.pictureBox1.TabIndex = 20;
-            this.pictureBox1.TabStop = false;
-            this.pictureBox1.Click += new System.EventHandler(this.pictureBox1_Click);
-            // 
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(838, 644);
+            this.label1.Location = new System.Drawing.Point(835, 647);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(47, 13);
             this.label1.TabIndex = 21;
             this.label1.Text = "made by";
-            // 
-            // pictureBox2
-            // 
-            this.pictureBox2.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox2.Image")));
-            this.pictureBox2.Location = new System.Drawing.Point(12, 393);
-            this.pictureBox2.Name = "pictureBox2";
-            this.pictureBox2.Size = new System.Drawing.Size(114, 120);
-            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.pictureBox2.TabIndex = 22;
-            this.pictureBox2.TabStop = false;
             // 
             // frstGearLabel
             // 
@@ -447,12 +406,70 @@
             this.layoutNameBox.TabIndex = 37;
             this.layoutNameBox.Text = "LayoutName";
             // 
+            // pictureBox3
+            // 
+            this.pictureBox3.BackColor = System.Drawing.Color.Transparent;
+            this.pictureBox3.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pictureBox3.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.pictureBox3.Image = global::AnalogStick_H_Shifter.Properties.Resources.YTLogo;
+            this.pictureBox3.Location = new System.Drawing.Point(838, 568);
+            this.pictureBox3.Name = "pictureBox3";
+            this.pictureBox3.Size = new System.Drawing.Size(65, 62);
+            this.pictureBox3.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pictureBox3.TabIndex = 38;
+            this.pictureBox3.TabStop = false;
+            this.pictureBox3.Click += new System.EventHandler(this.pictureBox3_Click);
+            // 
+            // pictureBox2
+            // 
+            this.pictureBox2.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox2.Image")));
+            this.pictureBox2.Location = new System.Drawing.Point(12, 393);
+            this.pictureBox2.Name = "pictureBox2";
+            this.pictureBox2.Size = new System.Drawing.Size(114, 120);
+            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox2.TabIndex = 22;
+            this.pictureBox2.TabStop = false;
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pictureBox1.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
+            this.pictureBox1.Location = new System.Drawing.Point(838, 663);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(143, 49);
+            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox1.TabIndex = 20;
+            this.pictureBox1.TabStop = false;
+            this.pictureBox1.Click += new System.EventHandler(this.pictureBox1_Click);
+            // 
+            // overlayBox
+            // 
+            this.overlayBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.overlayBox.Location = new System.Drawing.Point(132, 12);
+            this.overlayBox.Name = "overlayBox";
+            this.overlayBox.Size = new System.Drawing.Size(700, 700);
+            this.overlayBox.TabIndex = 3;
+            this.overlayBox.TabStop = false;
+            this.overlayBox.Click += new System.EventHandler(this.overlayBox_Click);
+            // 
+            // axisBox
+            // 
+            this.axisBox.BackColor = System.Drawing.Color.White;
+            this.axisBox.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+            this.axisBox.Location = new System.Drawing.Point(132, 12);
+            this.axisBox.Name = "axisBox";
+            this.axisBox.Size = new System.Drawing.Size(700, 700);
+            this.axisBox.TabIndex = 2;
+            this.axisBox.TabStop = false;
+            // 
             // H_Shifter
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.ClientSize = new System.Drawing.Size(993, 727);
+            this.Controls.Add(this.pictureBox3);
             this.Controls.Add(this.layoutNameBox);
             this.Controls.Add(this.loadButton);
             this.Controls.Add(this.savedLayoutsListBox);
@@ -495,10 +512,11 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "H_Shifter";
             this.Text = "Analogstick to 6 gear shifter";
-            ((System.ComponentModel.ISupportInitialize)(this.axisBox)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.overlayBox)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox3)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.overlayBox)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.axisBox)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -545,6 +563,7 @@
         private System.Windows.Forms.Button loadButton;
         private System.Windows.Forms.ColorDialog colorDialog1;
         private System.Windows.Forms.TextBox layoutNameBox;
+        private System.Windows.Forms.PictureBox pictureBox3;
     }
 }
 

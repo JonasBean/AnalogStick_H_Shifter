@@ -3,6 +3,7 @@ using SharpDX.XInput;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -126,7 +127,7 @@ namespace AnalogStick_H_Shifter
         private void PopulateListBox()
         {
             savedLayoutsListBox.Items.Clear();
-            DirectoryInfo dinfo = new DirectoryInfo(layoutFolder);
+            DirectoryInfo dinfo = new DirectoryInfo(path: layoutFolder);
             FileInfo[] Files = dinfo.GetFiles("*.*");
 
             foreach (FileInfo file in Files)
@@ -1704,6 +1705,11 @@ namespace AnalogStick_H_Shifter
         private void savedLayoutsListBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             layoutNameBox.Text = savedLayoutsListBox.SelectedItem.ToString();
+        }
+
+        private void pictureBox3_Click(object sender, EventArgs e)
+        {
+            Process.Start("https://www.youtube.com/c/BeanJ?sub_confirmation=1");
         }
     }
 }

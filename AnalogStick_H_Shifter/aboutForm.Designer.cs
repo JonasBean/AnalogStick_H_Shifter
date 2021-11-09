@@ -63,9 +63,11 @@
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(5, 58);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(351, 78);
+            this.label1.Size = new System.Drawing.Size(351, 52);
             this.label1.TabIndex = 2;
-            this.label1.Text = resources.GetString("label1.Text");
+            this.label1.Text = "Feel free to upload any video wherever you want using my software - but \r\nplease " +
+    "refer to my youtube or patreon site.\r\n\r\nIf you stumble upon a bug please message" +
+    " me on youtube!\r\n";
             // 
             // pictureBox1
             // 
@@ -82,7 +84,7 @@
             // pictureBox2
             // 
             this.pictureBox2.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.pictureBox2.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox2.Image")));
+            this.pictureBox2.Image = global::AnalogStick_H_Shifter.Properties.Resources.LogoNeu___Kopie;
             this.pictureBox2.Location = new System.Drawing.Point(8, 207);
             this.pictureBox2.Name = "pictureBox2";
             this.pictureBox2.Size = new System.Drawing.Size(209, 104);
