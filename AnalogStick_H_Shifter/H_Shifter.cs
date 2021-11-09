@@ -8,6 +8,7 @@ using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using System.Windows.Media.Imaging;
 
 namespace AnalogStick_H_Shifter
 {
@@ -20,6 +21,7 @@ namespace AnalogStick_H_Shifter
 
         public string root = Path.GetDirectoryName(Application.ExecutablePath);
         public string layoutFolder;
+        public string imagesFolder;
 
         public Point rightThumb = new Point(0, 0);
         public Point mouseCoords = new Point(0, 0);
@@ -29,6 +31,7 @@ namespace AnalogStick_H_Shifter
 
         static int axisSize = 680;
         static int imageSize = axisSize + 20;
+        static int gearsCount = 7;
         int previousGear = 0;
         int previousGearInBackground = -1;
 
@@ -40,15 +43,33 @@ namespace AnalogStick_H_Shifter
 
         private BackgroundWorker bGWorker = null;
 
-        Rectangle[] rectangles = new Rectangle[7];
+        Brush[] rectColors = new Brush[] { Brushes.Red, Brushes.Orange, Brushes.Yellow, Brushes.Green, Brushes.LightBlue, Brushes.Blue, Brushes.Pink };
+        string[] rectangleStrings = new string[] { "1", "2", "3", "4", "5", "6", "R", };
+
+        List<GearRectangle> gearRectangles = new List<GearRectangle>();
+        
         int[] shiftCounter = new int[7];
         int rectangleSize = 150;
 
-        public H_Shifter()
+        public H_Shifter() 
         {
+
+            for (int i = 0; i < gearsCount; i++)
+            {
+                GearRectangle gear = new GearRectangle();
+                gear.Color = rectColors[i];
+                gear.Gear = rectangleStrings[i];
+
+                gearRectangles.Add(gear);
+            }
+
             InitializeComponent();
 
+            overlayBox.MouseDown += overlayBox_MouseDown;
+            overlayBox.MouseUp += overlayBox_MouseUp;
+
             layoutFolder = Path.Combine(root, "Layouts");
+            imagesFolder = Path.Combine(root, "Images");
             PopulateListBox();
 
             if (savedLayoutsListBox.Items.Count != 0)
@@ -56,10 +77,12 @@ namespace AnalogStick_H_Shifter
                 savedLayoutsListBox.SelectedIndex = 0;
             }
 
-            for (int i = 0; i < 7; i++)
-            {
-                rectangles[i] = new Rectangle(0, 0, rectangleSize, rectangleSize);
-            }
+            //for (int i = 0; i < 7; i++)
+            //{
+            //    rectangles[i] = new Rectangle(0, 0, rectangleSize, rectangleSize);
+            //}
+
+            gearRectangles[0].Color = Brushes.Red;
 
             rectangleColors[0] = Brushes.Red;
             rectangleColors[1] = Brushes.Orange;
@@ -83,7 +106,7 @@ namespace AnalogStick_H_Shifter
                 Directory.CreateDirectory(layoutFolder);
                 if (savedLayoutsListBox.Items.Count != 0)
                 {
-                    rectangles = ReadFromBinaryFile<Rectangle[]>(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
+                    //rectangles = ReadFromBinaryFile<Rectangle[]>(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
                     Console.WriteLine("Gearlayout-Files loaded successfully");
                 }
             }
@@ -142,6 +165,26 @@ namespace AnalogStick_H_Shifter
             overlayBox_Click(null, null);
         }
 
+        private void overlayBox_MouseDown(object sender, EventArgs e)
+        {
+            MouseEventArgs me = (MouseEventArgs)e;
+            mouseCoords = new Point(me.Location.X, me.Location.Y);
+
+            checkForGrabHandle(mouseCoords);
+        }
+
+        private void overlayBox_MouseUp(object sender, EventArgs e)
+        {
+
+        }
+
+        private void checkForGrabHandle(Point mousePoint)
+        {
+
+    
+        }
+
+
         private void overlayBox_Click(object sender, EventArgs e)
         {
             if (!refreshOverlay)
@@ -152,32 +195,32 @@ namespace AnalogStick_H_Shifter
                 switch (previousGear)
                 {
                     case 1:
-                        rectangles[0].X = me.Location.X - (rectangles[0].Width / 2);
-                        rectangles[0].Y = me.Location.Y - (rectangles[0].Height / 2);
+                        gearRectangles[0].XPosition = me.Location.X - (gearRectangles[0].Width / 2);
+                        gearRectangles[0].YPosition = me.Location.Y - (gearRectangles[0].Height / 2);
                         break;
                     case 2:
-                        rectangles[1].X = me.Location.X - (rectangles[1].Width / 2);
-                        rectangles[1].Y = me.Location.Y - (rectangles[1].Height / 2);
+                        gearRectangles[1].XPosition = me.Location.X - (gearRectangles[1].Width / 2);
+                        gearRectangles[1].YPosition = me.Location.Y - (gearRectangles[1].Height / 2);
                         break;
                     case 3:
-                        rectangles[2].X = me.Location.X - (rectangles[2].Width / 2);
-                        rectangles[2].Y = me.Location.Y - (rectangles[2].Height / 2);
+                        gearRectangles[2].XPosition = me.Location.X - (gearRectangles[2].Width / 2);
+                        gearRectangles[2].YPosition = me.Location.Y - (gearRectangles[2].Height / 2);
                         break;
                     case 4:
-                        rectangles[3].X = me.Location.X - (rectangles[3].Width / 2);
-                        rectangles[3].Y = me.Location.Y - (rectangles[3].Height / 2);
+                        gearRectangles[3].XPosition = me.Location.X - (gearRectangles[3].Width / 2);
+                        gearRectangles[3].YPosition = me.Location.Y - (gearRectangles[3].Height / 2);
                         break;
                     case 5:
-                        rectangles[4].X = me.Location.X - (rectangles[4].Width / 2);
-                        rectangles[4].Y = me.Location.Y - (rectangles[4].Height / 2);
+                        gearRectangles[4].XPosition = me.Location.X - (gearRectangles[4].Width / 2);
+                        gearRectangles[4].YPosition = me.Location.Y - (gearRectangles[4].Height / 2);
                         break;
                     case 6:
-                        rectangles[5].X = me.Location.X - (rectangles[5].Width / 2);
-                        rectangles[5].Y = me.Location.Y - (rectangles[5].Height / 2);
+                        gearRectangles[5].XPosition = me.Location.X - (gearRectangles[5].Width / 2);
+                        gearRectangles[5].YPosition = me.Location.Y - (gearRectangles[5].Height / 2);
                         break;
                     case 9:
-                        rectangles[6].X = me.Location.X - (rectangles[6].Width / 2);
-                        rectangles[6].Y = me.Location.Y - (rectangles[6].Height / 2);
+                        gearRectangles[6].XPosition = me.Location.X - (gearRectangles[6].Width / 2);
+                        gearRectangles[6].YPosition = me.Location.Y - (gearRectangles[6].Height / 2);
                         break;
                     default: break;
                 }
@@ -191,12 +234,19 @@ namespace AnalogStick_H_Shifter
 
             using (Graphics graph = Graphics.FromImage(overlayImage))
             {
-                for (int i = 0; i < rectangles.Length; i++)
+                for (int i = 0; i < gearRectangles.Count; i++)
                 {
-                    rectangles[i].Width = rectangleSize;
-                    rectangles[i].Height = rectangleSize;
+                    gearRectangles[i].Width = rectangleSize;
+                    gearRectangles[i].Height = rectangleSize;
+                    
+                    graph.DrawRectangle(new Pen(gearRectangles[i].Color, 3), gearRectangles[i].Rect);
+                    
+                    graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition + gearRectangles[i].Width - 26, gearRectangles[i].YPosition - 10, 30, 38);
+                    Font drawFont = new Font("Segoe UI", 18, FontStyle.Bold);
+                    graph.DrawString(gearRectangles[i].Gear, drawFont, gearRectangles[i].Color, new Point(gearRectangles[i].XPosition + gearRectangles[i].Width - 18, gearRectangles[i].YPosition - 15));
 
-                    graph.DrawRectangle(new Pen(rectangleColors[i], 3), rectangles[i]);
+                    graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition - 8, gearRectangles[i].YPosition - 10, 20, 23);
+                    graph.DrawImage(Image.FromFile(imagesFolder + "\\directionArrows.png"), new Point(gearRectangles[i].XPosition - 8, gearRectangles[i].YPosition - 8));
                 }
             }
 
@@ -205,7 +255,7 @@ namespace AnalogStick_H_Shifter
 
         private void saveButton_Click(object sender, EventArgs e)
         {
-            WriteToBinaryFile(layoutFolder + "//" + layoutNameBox.Text, rectangles);
+            WriteToBinaryFile(layoutFolder + "//" + layoutNameBox.Text, gearRectangles);
             PopulateListBox();
         }
 
@@ -410,43 +460,43 @@ namespace AnalogStick_H_Shifter
                         }
 
                         // first gear ScanCodeShort.KEY_1
-                        if (rectangles[0].Contains(stick))
+                        if (gearRectangles[0].Rect.Contains(stick))
                         {
                             graph.FillEllipse(rectangleColors[0], axisPosition);
                             bGWorker.ReportProgress(2);
                         }
                         // second gear ScanCodeShort.KEY_2
-                        else if (rectangles[1].Contains(stick))
+                        else if (gearRectangles[1].Rect.Contains(stick))
                         {
                             graph.FillEllipse(rectangleColors[1], axisPosition);
                             bGWorker.ReportProgress(3);
                         }
                         // third gear ScanCodeShort.KEY_3
-                        else if (rectangles[2].Contains(stick))
+                        else if (gearRectangles[2].Rect.Contains(stick))
                         {
                             graph.FillEllipse(rectangleColors[2], axisPosition);
                             bGWorker.ReportProgress(4);
                         }
                         // fourth gear ScanCodeShort.KEY_4
-                        else if (rectangles[3].Contains(stick))
+                        else if (gearRectangles[3].Rect.Contains(stick))
                         {
                             graph.FillEllipse(rectangleColors[3], axisPosition);
                             bGWorker.ReportProgress(5);
                         }
                         // fifth gear ScanCodeShort.KEY_5
-                        else if (rectangles[4].Contains(stick))
+                        else if (gearRectangles[4].Rect.Contains(stick))
                         {
                             graph.FillEllipse(rectangleColors[4], axisPosition);
                             bGWorker.ReportProgress(6);
                         }
                         // sixth gear ScanCodeShort.KEY_6
-                        else if (rectangles[5].Contains(stick))
+                        else if (gearRectangles[5].Rect.Contains(stick))
                         {
                             graph.FillEllipse(rectangleColors[5], axisPosition);
                             bGWorker.ReportProgress(7);
                         }
                         // reverse gear ScanCodeShort.KEY_9
-                        else if (rectangles[6].Contains(stick))
+                        else if (gearRectangles[6].Rect.Contains(stick))
                         {
                             graph.FillEllipse(rectangleColors[6], axisPosition);
                             bGWorker.ReportProgress(10);
@@ -696,11 +746,19 @@ namespace AnalogStick_H_Shifter
 
         public static void WriteToBinaryFile<T>(string filePath, T objectToWrite, bool append = false)
         {
-            using (Stream stream = File.Open(filePath, append ? FileMode.Append : FileMode.Create))
+            using (BinaryWriter writer = new BinaryWriter(File.Open(layoutFolder + "//" + layoutNameBox.Text, FileMode.Create)))
             {
-                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-                binaryFormatter.Serialize(stream, objectToWrite);
+                writer.Write(1.250F);
+                writer.Write(@"c:\Temp");
+                writer.Write(10);
+                writer.Write(true);
             }
+
+            //using (Stream stream = File.Open(filePath, append ? FileMode.Append : FileMode.Create))
+            //{
+            //    var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+            //    binaryFormatter.Serialize(stream, objectToWrite);
+            //}
         }
 
         public static T ReadFromBinaryFile<T>(string filePath)
@@ -1697,7 +1755,7 @@ namespace AnalogStick_H_Shifter
 
         private void loadButton_Click(object sender, EventArgs e)
         {
-            rectangles = ReadFromBinaryFile<Rectangle[]>(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
+            gearRectangles = ReadFromBinaryFile<List<GearRectangle>>(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
             refreshOverlay = true;
             overlayBox_Click(null, null);
         }
