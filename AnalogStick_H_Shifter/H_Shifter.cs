@@ -47,11 +47,11 @@ namespace AnalogStick_H_Shifter
         string[] rectangleStrings = new string[] { "1", "2", "3", "4", "5", "6", "R", };
 
         List<GearRectangle> gearRectangles = new List<GearRectangle>();
-        
+
         int[] shiftCounter = new int[7];
         int rectangleSize = 150;
 
-        public H_Shifter() 
+        public H_Shifter()
         {
 
             for (int i = 0; i < gearsCount; i++)
@@ -181,7 +181,7 @@ namespace AnalogStick_H_Shifter
         private void checkForGrabHandle(Point mousePoint)
         {
 
-    
+
         }
 
 
@@ -238,9 +238,9 @@ namespace AnalogStick_H_Shifter
                 {
                     gearRectangles[i].Width = rectangleSize;
                     gearRectangles[i].Height = rectangleSize;
-                    
+
                     graph.DrawRectangle(new Pen(gearRectangles[i].Color, 3), gearRectangles[i].Rect);
-                    
+
                     graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition + gearRectangles[i].Width - 26, gearRectangles[i].YPosition - 10, 30, 38);
                     Font drawFont = new Font("Segoe UI", 18, FontStyle.Bold);
                     graph.DrawString(gearRectangles[i].Gear, drawFont, gearRectangles[i].Color, new Point(gearRectangles[i].XPosition + gearRectangles[i].Width - 18, gearRectangles[i].YPosition - 15));
@@ -255,7 +255,7 @@ namespace AnalogStick_H_Shifter
 
         private void saveButton_Click(object sender, EventArgs e)
         {
-            WriteToBinaryFile(layoutFolder + "//" + layoutNameBox.Text, gearRectangles);
+            WriteGearsToFile(layoutFolder + "//" + layoutNameBox.Text, gearRectangles);
             PopulateListBox();
         }
 
@@ -744,21 +744,65 @@ namespace AnalogStick_H_Shifter
             SendInput(1, Inputs, INPUT.Size);
         }
 
-        public static void WriteToBinaryFile<T>(string filePath, T objectToWrite, bool append = false)
+        public static void WriteGearsToFile<T>(string filePath, T objectToWrite, bool append = false)
         {
-            using (BinaryWriter writer = new BinaryWriter(File.Open(layoutFolder + "//" + layoutNameBox.Text, FileMode.Create)))
+            List<GearRectangle> dummyForType = new List<GearRectangle>();
+
+            if (objectToWrite.GetType() == dummyForType.GetType())
             {
-                writer.Write(1.250F);
-                writer.Write(@"c:\Temp");
-                writer.Write(10);
-                writer.Write(true);
+                List<GearRectangle> gearRectanglesToSave = objectToWrite as List<GearRectangle>;
+
+                using (BinaryWriter writer = new BinaryWriter(File.Open(filePath, FileMode.Create)))
+                {
+                    foreach (var gearRect in gearRectanglesToSave)
+                    {
+                        writer.Write(gearRect.Gear);
+                        writer.Write(gearRect.Color.ToString());
+
+                        writer.Write(gearRect.XPosition);
+                        writer.Write(gearRect.YPosition);
+                        writer.Write(gearRect.Width);
+                        writer.Write(gearRect.Height);
+                    }
+                }
+            }
+        }
+
+        List<GearRectangle> ReadGearListFromFile(string filePath)
+        {
+            FileStream fin = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            BinaryReader reader = new BinaryReader(fin);
+            reader.BaseStream.Seek(0, SeekOrigin.Begin);
+
+            List<GearRectangle> loadRects = new List<GearRectangle>();
+
+            for (int i = 0; i < gearsCount - 1; i++)
+            {
+                GearRectangle gearRect = new GearRectangle();
+
+                gearRect.Gear = reader.ReadString();
+
+                Brush brush = new SolidBrush(Color.FromName(reader.ReadString()));
+                gearRect.Color = brush;
+
+                gearRect.XPosition = reader.ReadInt32();
+                gearRect.YPosition = reader.ReadInt32();
+                gearRect.Width = reader.ReadInt32();
+                gearRect.Height = reader.ReadInt32();
+
+                loadRects.Add(gearRect);
             }
 
-            //using (Stream stream = File.Open(filePath, append ? FileMode.Append : FileMode.Create))
-            //{
-            //    var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-            //    binaryFormatter.Serialize(stream, objectToWrite);
-            //}
+            return loadRects;
+        }
+
+        public static void WriteToBinaryFile<T>(string filePath, T objectToWrite, bool append = false)
+        {
+            using (Stream stream = File.Open(filePath, append ? FileMode.Append : FileMode.Create))
+            {
+                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                binaryFormatter.Serialize(stream, objectToWrite);
+            }
         }
 
         public static T ReadFromBinaryFile<T>(string filePath)
@@ -1755,7 +1799,7 @@ namespace AnalogStick_H_Shifter
 
         private void loadButton_Click(object sender, EventArgs e)
         {
-            gearRectangles = ReadFromBinaryFile<List<GearRectangle>>(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
+            gearRectangles = ReadGearListFromFile(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
             refreshOverlay = true;
             overlayBox_Click(null, null);
         }
