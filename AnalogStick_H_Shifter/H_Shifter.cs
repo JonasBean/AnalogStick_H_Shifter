@@ -35,8 +35,6 @@ namespace AnalogStick_H_Shifter
         int previousGear = 0;
         int previousGearInBackground = -1;
 
-        Brush[] rectangleColors = new Brush[7];
-
         bool paintItOnce = true;
         bool update = false;
         bool refreshOverlay = false;
@@ -57,7 +55,6 @@ namespace AnalogStick_H_Shifter
             for (int i = 0; i < gearsCount; i++)
             {
                 GearRectangle gear = new GearRectangle();
-                gear.Color = rectColors[i];
                 gear.Gear = rectangleStrings[i];
 
                 gearRectangles.Add(gear);
@@ -76,21 +73,6 @@ namespace AnalogStick_H_Shifter
             {
                 savedLayoutsListBox.SelectedIndex = 0;
             }
-
-            //for (int i = 0; i < 7; i++)
-            //{
-            //    rectangles[i] = new Rectangle(0, 0, rectangleSize, rectangleSize);
-            //}
-
-            gearRectangles[0].Color = Brushes.Red;
-
-            rectangleColors[0] = Brushes.Red;
-            rectangleColors[1] = Brushes.Orange;
-            rectangleColors[2] = Brushes.Yellow;
-            rectangleColors[3] = Brushes.Green;
-            rectangleColors[4] = Brushes.LightBlue;
-            rectangleColors[5] = Brushes.Blue;
-            rectangleColors[6] = Brushes.Pink;
 
             axisImage = new Bitmap(imageSize, imageSize);
             overlayImage = new Bitmap(imageSize, imageSize);
@@ -239,11 +221,11 @@ namespace AnalogStick_H_Shifter
                     gearRectangles[i].Width = rectangleSize;
                     gearRectangles[i].Height = rectangleSize;
 
-                    graph.DrawRectangle(new Pen(gearRectangles[i].Color, 3), gearRectangles[i].Rect);
+                    graph.DrawRectangle(new Pen(rectColors[i], 3), gearRectangles[i].Rect);
 
                     graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition + gearRectangles[i].Width - 26, gearRectangles[i].YPosition - 10, 30, 38);
                     Font drawFont = new Font("Segoe UI", 18, FontStyle.Bold);
-                    graph.DrawString(gearRectangles[i].Gear, drawFont, gearRectangles[i].Color, new Point(gearRectangles[i].XPosition + gearRectangles[i].Width - 18, gearRectangles[i].YPosition - 15));
+                    graph.DrawString(gearRectangles[i].Gear, drawFont, rectColors[i], new Point(gearRectangles[i].XPosition + gearRectangles[i].Width - 18, gearRectangles[i].YPosition - 15));
 
                     graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition - 8, gearRectangles[i].YPosition - 10, 20, 23);
                     graph.DrawImage(Image.FromFile(imagesFolder + "\\directionArrows.png"), new Point(gearRectangles[i].XPosition - 8, gearRectangles[i].YPosition - 8));
@@ -462,43 +444,43 @@ namespace AnalogStick_H_Shifter
                         // first gear ScanCodeShort.KEY_1
                         if (gearRectangles[0].Rect.Contains(stick))
                         {
-                            graph.FillEllipse(rectangleColors[0], axisPosition);
+                            graph.FillEllipse(rectColors[0], axisPosition);
                             bGWorker.ReportProgress(2);
                         }
                         // second gear ScanCodeShort.KEY_2
                         else if (gearRectangles[1].Rect.Contains(stick))
                         {
-                            graph.FillEllipse(rectangleColors[1], axisPosition);
+                            graph.FillEllipse(rectColors[1], axisPosition);
                             bGWorker.ReportProgress(3);
                         }
                         // third gear ScanCodeShort.KEY_3
                         else if (gearRectangles[2].Rect.Contains(stick))
                         {
-                            graph.FillEllipse(rectangleColors[2], axisPosition);
+                            graph.FillEllipse(rectColors[2], axisPosition);
                             bGWorker.ReportProgress(4);
                         }
                         // fourth gear ScanCodeShort.KEY_4
                         else if (gearRectangles[3].Rect.Contains(stick))
                         {
-                            graph.FillEllipse(rectangleColors[3], axisPosition);
+                            graph.FillEllipse(rectColors[3], axisPosition);
                             bGWorker.ReportProgress(5);
                         }
                         // fifth gear ScanCodeShort.KEY_5
                         else if (gearRectangles[4].Rect.Contains(stick))
                         {
-                            graph.FillEllipse(rectangleColors[4], axisPosition);
+                            graph.FillEllipse(rectColors[4], axisPosition);
                             bGWorker.ReportProgress(6);
                         }
                         // sixth gear ScanCodeShort.KEY_6
                         else if (gearRectangles[5].Rect.Contains(stick))
                         {
-                            graph.FillEllipse(rectangleColors[5], axisPosition);
+                            graph.FillEllipse(rectColors[5], axisPosition);
                             bGWorker.ReportProgress(7);
                         }
                         // reverse gear ScanCodeShort.KEY_9
                         else if (gearRectangles[6].Rect.Contains(stick))
                         {
-                            graph.FillEllipse(rectangleColors[6], axisPosition);
+                            graph.FillEllipse(rectColors[6], axisPosition);
                             bGWorker.ReportProgress(10);
                         }
                         else // ScanCodeShort.KEY_9
@@ -757,7 +739,6 @@ namespace AnalogStick_H_Shifter
                     foreach (var gearRect in gearRectanglesToSave)
                     {
                         writer.Write(gearRect.Gear);
-                        writer.Write(gearRect.Color.ToString());
 
                         writer.Write(gearRect.XPosition);
                         writer.Write(gearRect.YPosition);
@@ -776,14 +757,11 @@ namespace AnalogStick_H_Shifter
 
             List<GearRectangle> loadRects = new List<GearRectangle>();
 
-            for (int i = 0; i < gearsCount - 1; i++)
+            for (int i = 0; i < gearsCount; i++)
             {
                 GearRectangle gearRect = new GearRectangle();
 
                 gearRect.Gear = reader.ReadString();
-
-                Brush brush = new SolidBrush(Color.FromName(reader.ReadString()));
-                gearRect.Color = brush;
 
                 gearRect.XPosition = reader.ReadInt32();
                 gearRect.YPosition = reader.ReadInt32();
