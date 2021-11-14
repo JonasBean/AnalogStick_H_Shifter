@@ -117,6 +117,7 @@
     <None Include="Resources\LogoNeu - Kopie.png" />
     <None Include="Resources\YTLogo.png" />
     <Content Include="Resources\directionArrows.png" />
+    <Content Include="Resources\scalingArrow.png" />
     <Content Include="Software_logo.ico" />
     <Content Include="tier2_patron.ico" />
   </ItemGroup>

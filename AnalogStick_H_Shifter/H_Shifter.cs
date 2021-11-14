@@ -35,13 +35,17 @@ namespace AnalogStick_H_Shifter
         int previousGear = 0;
         int previousGearInBackground = -1;
 
+        int currentlyGrabbedRectangle = -99;
+        PointF relativeGrabPosition;
+
         bool paintItOnce = true;
         bool update = false;
         bool refreshOverlay = false;
 
         private BackgroundWorker bGWorker = null;
+        private BackgroundWorker paintingbGWorker = null;
 
-        Brush[] rectColors = new Brush[] { Brushes.Red, Brushes.Orange, Brushes.Yellow, Brushes.Green, Brushes.LightBlue, Brushes.Blue, Brushes.Pink };
+        Brush[] rectColors = new Brush[] { Brushes.Red, Brushes.Orange, Brushes.Gray, Brushes.Green, Brushes.LightBlue, Brushes.Blue, Brushes.Pink };
         string[] rectangleStrings = new string[] { "1", "2", "3", "4", "5", "6", "R", };
 
         List<GearRectangle> gearRectangles = new List<GearRectangle>();
@@ -51,7 +55,6 @@ namespace AnalogStick_H_Shifter
 
         public H_Shifter()
         {
-
             for (int i = 0; i < gearsCount; i++)
             {
                 GearRectangle gear = new GearRectangle();
@@ -62,17 +65,14 @@ namespace AnalogStick_H_Shifter
 
             InitializeComponent();
 
-            overlayBox.MouseDown += overlayBox_MouseDown;
+            overlayBox.MouseDown += OverlayBox_MouseDown;
             overlayBox.MouseUp += overlayBox_MouseUp;
 
             layoutFolder = Path.Combine(root, "Layouts");
             imagesFolder = Path.Combine(root, "Images");
             PopulateListBox();
 
-            if (savedLayoutsListBox.Items.Count != 0)
-            {
-                savedLayoutsListBox.SelectedIndex = 0;
-            }
+            
 
             axisImage = new Bitmap(imageSize, imageSize);
             overlayImage = new Bitmap(imageSize, imageSize);
@@ -80,6 +80,13 @@ namespace AnalogStick_H_Shifter
             overlayBox.BackColor = Color.Transparent;
             overlayBox.Parent = axisBox;
             overlayBox.Location = new Point(0, 0);
+
+            if (savedLayoutsListBox.Items.Count != 0)
+            {
+                savedLayoutsListBox.SelectedIndex = 0;
+                gearRectangles = ReadGearListFromFile(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
+                PaintGears();
+            }
 
             gearRightNow.Font = new Font("Microsoft Sans Serif", 55, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
 
@@ -139,33 +146,83 @@ namespace AnalogStick_H_Shifter
             {
                 savedLayoutsListBox.Items.Add(file.Name);
             }
+
+            savedLayoutsListBox.SelectedIndex = 0;
         }
 
-        private void textBox1_TextChanged(object sender, EventArgs e)
+        private void TextBox1_TextChanged(object sender, EventArgs e)
         {
             refreshOverlay = true;
             overlayBox_Click(null, null);
         }
 
-        private void overlayBox_MouseDown(object sender, EventArgs e)
+        private void OverlayBox_MouseDown(object sender, EventArgs e)
         {
+            overlayBox.MouseMove += overlayBox_MouseMoved;
+
             MouseEventArgs me = (MouseEventArgs)e;
             mouseCoords = new Point(me.Location.X, me.Location.Y);
 
-            checkForGrabHandle(mouseCoords);
+
+
+            CheckForGrabHandle(mouseCoords);
         }
 
         private void overlayBox_MouseUp(object sender, EventArgs e)
         {
+            overlayBox.MouseMove -= overlayBox_MouseMoved;
 
+            if (overlayImage != null)
+                overlayImage.Dispose();
+
+            currentlyGrabbedRectangle = -99;
+
+            if (paintingbGWorker != null)
+            {
+                paintingbGWorker.CancelAsync();
+            }
         }
 
-        private void checkForGrabHandle(Point mousePoint)
+        private void overlayBox_MouseMoved(object sender, EventArgs e)
         {
+            MouseEventArgs me = (MouseEventArgs)e;
 
-
+            if (currentlyGrabbedRectangle != -99)
+            {
+                gearRectangles[currentlyGrabbedRectangle].XPosition = me.Location.X + (int)relativeGrabPosition.X;
+                gearRectangles[currentlyGrabbedRectangle].YPosition = me.Location.Y + (int)relativeGrabPosition.Y;
+            }
         }
 
+        private void CheckForGrabHandle(Point mousePoint)
+        {
+            Console.WriteLine(mousePoint.X + "|" + mousePoint.Y);
+
+            for (int i = 0; i < gearRectangles.Count; i++)
+            {
+                if (PointIsInside(gearRectangles[i].Rect, mousePoint))
+                {
+                    currentlyGrabbedRectangle = i;
+
+                    relativeGrabPosition = new PointF(
+                        gearRectangles[currentlyGrabbedRectangle].XPosition - mouseCoords.X,
+                        gearRectangles[currentlyGrabbedRectangle].YPosition - mouseCoords.Y
+                    );
+
+                    if (paintingbGWorker == null)
+                    {
+                        paintingbGWorker = new BackgroundWorker();
+                        paintingbGWorker.DoWork += new DoWorkEventHandler(paintingbGWorker_DoWork);
+                    }
+
+                    paintingbGWorker.WorkerReportsProgress = true;
+                    paintingbGWorker.WorkerSupportsCancellation = true;
+                    paintingbGWorker.RunWorkerAsync();
+
+                    Console.WriteLine("Grabbed grabber of Gear " + gearRectangles[i].Gear + " swaggy grabPos " + relativeGrabPosition);
+                }
+            }
+        }
 
         private void overlayBox_Click(object sender, EventArgs e)
         {
@@ -211,35 +268,9 @@ namespace AnalogStick_H_Shifter
             {
                 refreshOverlay = false;
             }
-
-            overlayImage = new Bitmap(imageSize, imageSize);
-
-            using (Graphics graph = Graphics.FromImage(overlayImage))
-            {
-                for (int i = 0; i < gearRectangles.Count; i++)
-                {
-                    gearRectangles[i].Width = rectangleSize;
-                    gearRectangles[i].Height = rectangleSize;
-
-                    graph.DrawRectangle(new Pen(rectColors[i], 3), gearRectangles[i].Rect);
-
-                    graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition + gearRectangles[i].Width - 26, gearRectangles[i].YPosition - 10, 30, 38);
-                    Font drawFont = new Font("Segoe UI", 18, FontStyle.Bold);
-                    graph.DrawString(gearRectangles[i].Gear, drawFont, rectColors[i], new Point(gearRectangles[i].XPosition + gearRectangles[i].Width - 18, gearRectangles[i].YPosition - 15));
-
-                    graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition - 8, gearRectangles[i].YPosition - 10, 20, 23);
-                    graph.DrawImage(Image.FromFile(imagesFolder + "\\directionArrows.png"), new Point(gearRectangles[i].XPosition - 8, gearRectangles[i].YPosition - 8));
-                }
-            }
-
-            overlayBox.Image = overlayImage;
         }
 
-        private void saveButton_Click(object sender, EventArgs e)
-        {
-            WriteGearsToFile(layoutFolder + "//" + layoutNameBox.Text, gearRectangles);
-            PopulateListBox();
-        }
+
 
         private void resetImageButton_Click(object sender, EventArgs e)
         {
@@ -570,6 +601,56 @@ namespace AnalogStick_H_Shifter
                 WriteToBinaryFile(Path.GetDirectoryName(Application.ExecutablePath) + "//shiftCount", shiftCounter);
 
             }
+        }
+
+        void paintingbGWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            do
+            {
+                if (paintingbGWorker.CancellationPending)
+                    break;
+
+                try
+                {
+                    PaintGears();
+
+                    System.Threading.Thread.Sleep(20);
+                }
+                catch (Exception) { }
+            } while (true);
+        }
+
+        private void PaintGears()
+        {
+            overlayImage = new Bitmap(imageSize, imageSize);
+
+            using (Graphics graph = Graphics.FromImage(overlayImage))
+            {
+                for (int i = 0; i < gearRectangles.Count; i++)
+                {
+                    gearRectangles[i].Width = rectangleSize;
+                    gearRectangles[i].Height = rectangleSize;
+
+                    // Gear-Rectangle
+                    graph.DrawRectangle(new Pen(rectColors[i], 3), gearRectangles[i].Rect);
+
+                    // Gear-Name
+                    graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition + gearRectangles[i].Width - 22, gearRectangles[i].YPosition - 12, 30, 30);
+                    graph.DrawRectangle(new Pen(rectColors[i], 3), gearRectangles[i].XPosition + gearRectangles[i].Width - 22, gearRectangles[i].YPosition - 12, 30, 30);
+                    Font drawFont = new Font("Segoe UI", 18, FontStyle.Bold);
+                    graph.DrawString(gearRectangles[i].Gear, drawFont, rectColors[i], new Point(gearRectangles[i].XPosition + gearRectangles[i].Width - 16, gearRectangles[i].YPosition - 15));
+
+                    // Gear-Grabber
+                    graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition - 8, gearRectangles[i].YPosition - 10, 20, 23);
+                    graph.DrawImage(Image.FromFile(imagesFolder + "\\directionArrows.png"), new Point(gearRectangles[i].XPosition - 8, gearRectangles[i].YPosition - 8));
+
+                    // Gear-Scaler
+                    graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition + gearRectangles[i].Width - 12, gearRectangles[i].YPosition + gearRectangles[i].Height - 12, 20, 20);
+                    graph.DrawImage(Image.FromFile(imagesFolder + "\\scalingArrow.png"), gearRectangles[i].XPosition + gearRectangles[i].Width - 10, gearRectangles[i].YPosition + gearRectangles[i].Height - 10, 18, 18);
+                }
+            }
+
+            overlayBox.Image = overlayImage;
         }
 
         int getTotalShifts()
@@ -1777,9 +1858,27 @@ namespace AnalogStick_H_Shifter
 
         private void loadButton_Click(object sender, EventArgs e)
         {
-            gearRectangles = ReadGearListFromFile(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
-            refreshOverlay = true;
-            overlayBox_Click(null, null);
+
+            if (savedLayoutsListBox.SelectedItem != null)
+            {
+                gearRectangles = ReadGearListFromFile(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
+    
+                PaintGears();
+            }
+        }
+
+        private void saveButton_Click(object sender, EventArgs e)
+        {
+            WriteGearsToFile(layoutFolder + "//" + layoutNameBox.Text, gearRectangles);
+            PopulateListBox();
+
+            for (int i = 0; i < savedLayoutsListBox.Items.Count; i++)
+            {
+                if (savedLayoutsListBox.Items[i].ToString() == layoutNameBox.Text)
+                {
+                    //savedLayoutsListBox.SelectedIndex = i;
+                }
+            }
         }
 
         private void savedLayoutsListBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -1790,6 +1889,55 @@ namespace AnalogStick_H_Shifter
         private void pictureBox3_Click(object sender, EventArgs e)
         {
             Process.Start("https://www.youtube.com/c/BeanJ?sub_confirmation=1");
+        }
+
+        bool PointIsInside(Rectangle rect, PointF mouseclick)
+        {
+            int distanceFromCorner = 10;
+            double area = distanceFromCorner * 2 * distanceFromCorner * 2;
+
+            PointF[] v = {
+                new PointF(rect.X - distanceFromCorner, rect.Y - distanceFromCorner),
+                new PointF(rect.X + distanceFromCorner, rect.Y - distanceFromCorner),
+                new PointF(rect.X + distanceFromCorner, rect.Y + distanceFromCorner),
+                new PointF(rect.X - distanceFromCorner, rect.Y + distanceFromCorner)
+            };
+
+            //rect.X + rect.Width, rect.Y + rect.Height };
+
+            // calculate area of all rectangle-vercites to the mouseclick coordinates
+            float measuredArea =
+                TriangleArea(mouseclick, v[0], v[1]) +
+                TriangleArea(mouseclick, v[1], v[2]) +
+                TriangleArea(mouseclick, v[2], v[3]) +
+                TriangleArea(mouseclick, v[3], v[0]);
+
+            // check for negativ values
+            if (measuredArea < 0)
+            {
+                measuredArea *= -1;
+            }
+
+            // if the measuredArea is bigger the mouseclick is outside of the found contour
+            if (measuredArea > area + 1)
+            {
+                return false;
+            }
+            return true;
+        }
+
+
+        float TriangleArea(PointF A, PointF B, PointF C)
+        {
+            float triangleArea = ((B.X * A.Y - A.X * B.Y) + (C.X * B.Y - B.X * C.Y) + (A.X * C.Y - C.X * A.Y)) / 2;
+
+            // check for negativ values
+            if (triangleArea < 0)
+            {
+                triangleArea *= -1;
+            }
+            // caltulate area of triangle with points
+            return triangleArea;
         }
     }
 }
