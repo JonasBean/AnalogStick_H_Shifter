@@ -9,8 +9,21 @@ namespace AnalogStick_H_Shifter
 {
     class GearRectangle
     {
+
         private Rectangle rect;
         private string gear;
+
+        public GearRectangle(){}
+
+        public GearRectangle(int width, int height, int xPosition, int yPosition, string gear, Rectangle rect)
+        {
+            Width = width;
+            Height = height;
+            XPosition = xPosition;
+            YPosition = yPosition;
+            Gear = gear;
+            Rect = rect;
+        }
 
         public int Width { get => rect.Width; set => rect.Width = value; }
         public int Height { get => rect.Height; set => rect.Height = value; }

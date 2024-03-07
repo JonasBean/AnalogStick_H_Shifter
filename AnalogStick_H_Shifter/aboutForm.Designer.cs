@@ -63,11 +63,9 @@
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(5, 58);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(351, 52);
+            this.label1.Size = new System.Drawing.Size(352, 65);
             this.label1.TabIndex = 2;
-            this.label1.Text = "Feel free to upload any video wherever you want using my software - but \r\nplease " +
-    "refer to my youtube or patreon site.\r\n\r\nIf you stumble upon a bug please message" +
-    " me on youtube!\r\n";
+            this.label1.Text = resources.GetString("label1.Text");
             // 
             // pictureBox1
             // 

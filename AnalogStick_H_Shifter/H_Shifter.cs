@@ -1,6 +1,4 @@
-﻿using SharpDX.DirectInput;
-using SharpDX.XInput;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -8,7 +6,7 @@ using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using System.Windows.Media.Imaging;
+using static AnalogStick_H_Shifter.ControllerHandling;
 
 namespace AnalogStick_H_Shifter
 {
@@ -29,9 +27,9 @@ namespace AnalogStick_H_Shifter
         public Bitmap axisImage;
         public Bitmap overlayImage;
 
-        static int axisSize = 680;
-        static int imageSize = axisSize + 20;
-        static int gearsCount = 7;
+        static readonly int axisSize = 680;
+        static readonly int imageSize = axisSize + 20;
+        static readonly int gearsCount = 7;
         int previousGear = 0;
         int previousGearInBackground = -1;
 
@@ -41,17 +39,18 @@ namespace AnalogStick_H_Shifter
         bool paintItOnce = true;
         bool update = false;
         bool refreshOverlay = false;
+        bool grabber;
 
         private BackgroundWorker bGWorker = null;
         private BackgroundWorker paintingbGWorker = null;
 
-        Brush[] rectColors = new Brush[] { Brushes.Red, Brushes.Orange, Brushes.Gray, Brushes.Green, Brushes.LightBlue, Brushes.Blue, Brushes.Pink };
-        string[] rectangleStrings = new string[] { "1", "2", "3", "4", "5", "6", "R", };
+        readonly Brush[] rectColors = new Brush[] { Brushes.Red, Brushes.Orange, Brushes.Gray, Brushes.Green, Brushes.LightBlue, Brushes.Blue, Brushes.Pink };
+        readonly string[] rectangleStrings = new string[] { "1", "2", "3", "4", "5", "6", "R", };
 
         List<GearRectangle> gearRectangles = new List<GearRectangle>();
+        readonly ControllerHandling controllerHandling = new ControllerHandling();
 
         int[] shiftCounter = new int[7];
-        int rectangleSize = 150;
 
         public H_Shifter()
         {
@@ -63,6 +62,7 @@ namespace AnalogStick_H_Shifter
                 gearRectangles.Add(gear);
             }
 
+
             InitializeComponent();
 
             overlayBox.MouseDown += OverlayBox_MouseDown;
@@ -70,9 +70,7 @@ namespace AnalogStick_H_Shifter
 
             layoutFolder = Path.Combine(root, "Layouts");
             imagesFolder = Path.Combine(root, "Images");
-            PopulateListBox();
 
-            
 
             axisImage = new Bitmap(imageSize, imageSize);
             overlayImage = new Bitmap(imageSize, imageSize);
@@ -81,12 +79,25 @@ namespace AnalogStick_H_Shifter
             overlayBox.Parent = axisBox;
             overlayBox.Location = new Point(0, 0);
 
+            PopulateListBox();
+
             if (savedLayoutsListBox.Items.Count != 0)
             {
                 savedLayoutsListBox.SelectedIndex = 0;
                 gearRectangles = ReadGearListFromFile(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
-                PaintGears();
+
             }
+            else
+            {
+                var tempRect = new Rectangle(25, 25, 25, 25);
+                gearRectangles = new List<GearRectangle> {
+                    new GearRectangle(120, 120, 30, 30, rectangleStrings[0], tempRect),
+                    new GearRectangle(120, 120, 350, 30, rectangleStrings[1], tempRect)
+                };
+
+            }
+
+            PaintGears();
 
             gearRightNow.Font = new Font("Microsoft Sans Serif", 55, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
 
@@ -147,7 +158,10 @@ namespace AnalogStick_H_Shifter
                 savedLayoutsListBox.Items.Add(file.Name);
             }
 
-            savedLayoutsListBox.SelectedIndex = 0;
+            if (savedLayoutsListBox.Items.Count > 0)
+            {
+                savedLayoutsListBox.SelectedIndex = 0;
+            }
         }
 
         private void TextBox1_TextChanged(object sender, EventArgs e)
@@ -179,6 +193,7 @@ namespace AnalogStick_H_Shifter
 
             if (paintingbGWorker != null)
             {
+                System.Threading.Thread.Sleep(60);
                 paintingbGWorker.CancelAsync();
             }
         }
@@ -189,19 +204,42 @@ namespace AnalogStick_H_Shifter
 
             if (currentlyGrabbedRectangle != -99)
             {
-                gearRectangles[currentlyGrabbedRectangle].XPosition = me.Location.X + (int)relativeGrabPosition.X;
-                gearRectangles[currentlyGrabbedRectangle].YPosition = me.Location.Y + (int)relativeGrabPosition.Y;
+                if (grabber)
+                {
+                    if (me.Location.X >= 0 && me.Location.X <= 535)
+                    {
+                        gearRectangles[currentlyGrabbedRectangle].XPosition = me.Location.X + (int)relativeGrabPosition.X;
+                    }
+
+                    if (me.Location.Y >= 0 && me.Location.Y <= 535)
+                    {
+                        gearRectangles[currentlyGrabbedRectangle].YPosition = me.Location.Y + (int)relativeGrabPosition.Y;
+                    }
+                }
+                else
+                {
+                    if (me.Location.X >= 0 && me.Location.X <= 680 &&
+                        me.Location.X - gearRectangles[currentlyGrabbedRectangle].XPosition > 100)
+                    {
+                        gearRectangles[currentlyGrabbedRectangle].Width = me.Location.X - gearRectangles[currentlyGrabbedRectangle].XPosition + (int)relativeGrabPosition.X;
+                    }
+
+                    if (me.Location.Y >= 0 && me.Location.Y <= 690 &&
+                        me.Location.Y - gearRectangles[currentlyGrabbedRectangle].YPosition > 100)
+                    {
+                        gearRectangles[currentlyGrabbedRectangle].Height = me.Location.Y - gearRectangles[currentlyGrabbedRectangle].YPosition + (int)relativeGrabPosition.Y;
+                    }
+                }
             }
         }
 
         private void CheckForGrabHandle(Point mousePoint)
         {
-            Console.WriteLine(mousePoint.X + "|" + mousePoint.Y);
-
             for (int i = 0; i < gearRectangles.Count; i++)
             {
-                if (PointIsInside(gearRectangles[i].Rect, mousePoint))
+                if (PointIsInside(gearRectangles[i].Rect, mousePoint, true))
                 {
+                    grabber = true;
                     currentlyGrabbedRectangle = i;
 
                     relativeGrabPosition = new PointF(
@@ -219,8 +257,30 @@ namespace AnalogStick_H_Shifter
                     paintingbGWorker.WorkerSupportsCancellation = true;
                     paintingbGWorker.RunWorkerAsync();
 
-                    Console.WriteLine("Grabbed grabber of Gear " + gearRectangles[i].Gear + " swaggy grabPos " + relativeGrabPosition);
                 }
+
+                if (PointIsInside(gearRectangles[i].Rect, mousePoint, false))
+                {
+                    grabber = false;
+                    currentlyGrabbedRectangle = i;
+
+                    relativeGrabPosition = new PointF(
+                        gearRectangles[currentlyGrabbedRectangle].XPosition + gearRectangles[currentlyGrabbedRectangle].Width - mouseCoords.X,
+                        gearRectangles[currentlyGrabbedRectangle].YPosition + gearRectangles[currentlyGrabbedRectangle].Height - mouseCoords.Y
+                    );
+
+                    if (paintingbGWorker == null)
+                    {
+                        paintingbGWorker = new BackgroundWorker();
+                        paintingbGWorker.DoWork += new DoWorkEventHandler(paintingbGWorker_DoWork);
+                    }
+
+                    paintingbGWorker.WorkerReportsProgress = true;
+                    paintingbGWorker.WorkerSupportsCancellation = true;
+                    paintingbGWorker.RunWorkerAsync();
+                }
+
+
             }
         }
 
@@ -270,130 +330,9 @@ namespace AnalogStick_H_Shifter
             }
         }
 
-
-
         private void resetImageButton_Click(object sender, EventArgs e)
         {
             paintItOnce = true;
-        }
-
-        private void gear1Button_Click(object sender, EventArgs e)
-        {
-            if (previousGear != 1)
-            {
-                gear1Button.BackColor = Color.LightSkyBlue;
-                string button = "gear" + previousGear + "Button";
-
-                var matches = Controls.Find(button, true);
-                if (matches.Length != 0)
-                {
-                    matches[0].BackColor = Color.Transparent;
-                }
-
-                previousGear = 1;
-
-            }
-        }
-
-        private void gear2Button_Click(object sender, EventArgs e)
-        {
-            if (previousGear != 2)
-            {
-                gear2Button.BackColor = Color.LightSkyBlue;
-                string button = "gear" + previousGear + "Button";
-
-                var matches = Controls.Find(button, true);
-                if (matches.Length != 0)
-                {
-                    matches[0].BackColor = Color.Transparent;
-                }
-                previousGear = 2;
-
-            }
-        }
-
-        private void gear3Button_Click(object sender, EventArgs e)
-        {
-            if (previousGear != 3)
-            {
-                gear3Button.BackColor = Color.LightSkyBlue;
-                string button = "gear" + previousGear + "Button";
-
-                var matches = Controls.Find(button, true);
-                if (matches.Length != 0)
-                {
-                    matches[0].BackColor = Color.Transparent;
-                }
-                previousGear = 3;
-
-            }
-        }
-
-        private void gear4Button_Click(object sender, EventArgs e)
-        {
-            if (previousGear != 4)
-            {
-                gear4Button.BackColor = Color.LightSkyBlue;
-                string button = "gear" + previousGear + "Button";
-
-                var matches = Controls.Find(button, true);
-                if (matches.Length != 0)
-                {
-                    matches[0].BackColor = Color.Transparent;
-                }
-                previousGear = 4;
-
-            }
-        }
-
-        private void gear5Button_Click(object sender, EventArgs e)
-        {
-            if (previousGear != 5)
-            {
-                gear5Button.BackColor = Color.LightSkyBlue;
-                string button = "gear" + previousGear + "Button";
-
-                var matches = Controls.Find(button, true);
-                if (matches.Length != 0)
-                {
-                    matches[0].BackColor = Color.Transparent;
-                }
-                previousGear = 5;
-
-            }
-        }
-
-        private void gear6Button_Click(object sender, EventArgs e)
-        {
-            if (previousGear != 6)
-            {
-                gear6Button.BackColor = Color.LightSkyBlue;
-                string button = "gear" + previousGear + "Button";
-
-                var matches = Controls.Find(button, true);
-                if (matches.Length != 0)
-                {
-                    matches[0].BackColor = Color.Transparent;
-                }
-                previousGear = 6;
-
-            }
-        }
-
-        private void gear9Button_Click(object sender, EventArgs e)
-        {
-            if (previousGear != 9)
-            {
-                gear9Button.BackColor = Color.LightSkyBlue;
-                string button = "gear" + previousGear + "Button";
-
-                var matches = Controls.Find(button, true);
-                if (matches.Length != 0)
-                {
-                    matches[0].BackColor = Color.Transparent;
-                }
-                previousGear = 9;
-            }
         }
 
         private void activateControllerButton_Click(object sender, EventArgs e)
@@ -535,14 +474,14 @@ namespace AnalogStick_H_Shifter
             {
                 if (e.ProgressPercentage == 11)
                 {
-                    Release((ScanCodeShort)previousGearInBackground);
+                    controllerHandling.Release((ScanCodeShort)previousGearInBackground);
                 }
                 else
                 {
                     //Send Release Send for a cleaner signal when shifting directly from gear to gear
-                    SendInputWithAPI((ScanCodeShort)e.ProgressPercentage);
-                    Release((ScanCodeShort)e.ProgressPercentage);
-                    SendInputWithAPI((ScanCodeShort)e.ProgressPercentage);
+                    controllerHandling.SendInputWithAPI((ScanCodeShort)e.ProgressPercentage);
+                    controllerHandling.Release((ScanCodeShort)e.ProgressPercentage);
+                    controllerHandling.SendInputWithAPI((ScanCodeShort)e.ProgressPercentage);
                 }
 
                 previousGearInBackground = e.ProgressPercentage;
@@ -620,6 +559,23 @@ namespace AnalogStick_H_Shifter
             } while (true);
         }
 
+        void grabbingbGWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            do
+            {
+                if (paintingbGWorker.CancellationPending)
+                    break;
+
+                try
+                {
+                    PaintGears();
+
+                    System.Threading.Thread.Sleep(20);
+                }
+                catch (Exception) { }
+            } while (true);
+        }
+
         private void PaintGears()
         {
             overlayImage = new Bitmap(imageSize, imageSize);
@@ -628,9 +584,6 @@ namespace AnalogStick_H_Shifter
             {
                 for (int i = 0; i < gearRectangles.Count; i++)
                 {
-                    gearRectangles[i].Width = rectangleSize;
-                    gearRectangles[i].Height = rectangleSize;
-
                     // Gear-Rectangle
                     graph.DrawRectangle(new Pen(rectColors[i], 3), gearRectangles[i].Rect);
 
@@ -642,11 +595,11 @@ namespace AnalogStick_H_Shifter
 
                     // Gear-Grabber
                     graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition - 8, gearRectangles[i].YPosition - 10, 20, 23);
-                    graph.DrawImage(Image.FromFile(imagesFolder + "\\directionArrows.png"), new Point(gearRectangles[i].XPosition - 8, gearRectangles[i].YPosition - 8));
+                    graph.DrawImage(Properties.Resources.directionArrows, new Point(gearRectangles[i].XPosition - 8, gearRectangles[i].YPosition - 8));
 
                     // Gear-Scaler
                     graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition + gearRectangles[i].Width - 12, gearRectangles[i].YPosition + gearRectangles[i].Height - 12, 20, 20);
-                    graph.DrawImage(Image.FromFile(imagesFolder + "\\scalingArrow.png"), gearRectangles[i].XPosition + gearRectangles[i].Width - 10, gearRectangles[i].YPosition + gearRectangles[i].Height - 10, 18, 18);
+                    graph.DrawImage(Properties.Resources.scalingArrow, gearRectangles[i].XPosition + gearRectangles[i].Width - 10, gearRectangles[i].YPosition + gearRectangles[i].Height - 10, 18, 18);
                 }
             }
 
@@ -669,142 +622,6 @@ namespace AnalogStick_H_Shifter
         {
             aboutForm win2 = new aboutForm();
             win2.Show();
-        }
-
-        class XInputController
-        {
-            Controller controller;
-            public bool connected = false;
-            public int deadband = 2500;
-
-            //public string recognizedGear = "";
-            public Gamepad gamepad { get; set; }
-
-            public XInputController()
-            {
-                controller = new Controller(UserIndex.One);
-
-                connected = controller.IsConnected;
-            }
-
-            // Call this method to update all class values
-            public void Update()
-            {
-                if (!connected)
-                    return;
-
-                gamepad = controller.GetState().Gamepad;
-                //Console.WriteLine("X: " + gamepad.RightThumbX + "\t Y: " + gamepad.RightThumbY + " " + recognizedGear);
-            }
-        }
-
-        class DirectInputController
-        {
-            DirectInput directInput = new DirectInput();
-            public bool connected = false;
-            Guid joystickGuid;
-
-            //public string recognizedGear = "";
-
-            public Joystick joystick { get; set; }
-            public Point joystickPosition { get; set; }
-            public Point previousJoystickPosition { get; set; }
-
-            public DirectInputController(ComboBox joyStickListBox, bool selectBoxChanged)
-            {
-                // Find all joysticks connected to the system
-                IList<DeviceInstance> connectedJoysticks = new List<DeviceInstance>();
-                IList<string> connectedJoysticksString = new List<string>();
-
-                // - look for joysticks
-                foreach (var deviceInstance in directInput.GetDevices(SharpDX.DirectInput.DeviceType.Joystick, DeviceEnumerationFlags.AllDevices))
-                {
-                    connectedJoysticks.Add(deviceInstance);
-                    connectedJoysticksString.Add(deviceInstance.InstanceName);
-                }
-
-                if (!selectBoxChanged)
-                {
-                    joyStickListBox.DataSource = connectedJoysticksString;
-                }
-
-                //Console.WriteLine(joyStickListBox.SelectedIndex);
-
-                if (connectedJoysticks.Count > 0)
-                    joystickGuid = connectedJoysticks[joyStickListBox.SelectedIndex].InstanceGuid;
-
-                // If Joystick not found, throws an error
-                if (joystickGuid == Guid.Empty)
-                {
-                    Console.WriteLine("No directinput joystick/Gamepad found.");
-                }
-                else
-                {
-                    connected = true;
-                    // Instantiate the joystick
-                    joystick = new Joystick(directInput, joystickGuid);
-                    Console.WriteLine("Found Joystick/Gamepad with GUID: {0}", joystickGuid);
-
-                    // Set BufferSize in order to use buffered data.
-                    joystick.Properties.BufferSize = 32;
-
-                    // Acquire the joystick
-                    joystick.Acquire();
-                }
-            }
-
-            public void Update()
-            {
-                if (!connected)
-                    return;
-
-                int x = -5000, y = -5000;
-
-                joystick.Poll();
-                var datas = joystick.GetBufferedData();
-                foreach (var state in datas)
-                {
-                    if (state.Offset == JoystickOffset.X)
-                    {
-                        x = state.Value;
-                    }
-
-                    if (state.Offset == JoystickOffset.Y)
-                    {
-                        y = state.Value;
-                    }
-
-                    if (x != -5000 && y != -5000)
-                    {
-                        joystickPosition = new Point(x, y);
-                    }
-                }
-            }
-        }
-
-        void SendInputWithAPI(ScanCodeShort key)
-        {
-            INPUT[] Inputs = new INPUT[1];
-            INPUT Input = new INPUT();
-
-            Input.type = 1; // 1 = Keyboard Input
-            Input.U.ki.wScan = key;
-            Input.U.ki.dwFlags = KEYEVENTF.SCANCODE;
-            Inputs[0] = Input;
-            SendInput(1, Inputs, INPUT.Size);
-        }
-
-        void Release(ScanCodeShort key)
-        {
-            INPUT[] Inputs = new INPUT[1];
-            INPUT Input = new INPUT();
-
-            Input.type = 1; // 1 = Keyboard Input
-            Input.U.ki.wScan = key;
-            Input.U.ki.dwFlags = KEYEVENTF.KEYUP | KEYEVENTF.SCANCODE;
-            Inputs[0] = Input;
-
-            SendInput(1, Inputs, INPUT.Size);
         }
 
         public static void WriteGearsToFile<T>(string filePath, T objectToWrite, bool append = false)
@@ -873,970 +690,6 @@ namespace AnalogStick_H_Shifter
             }
         }
 
-        [DllImport("user32.dll")]
-        internal static extern uint SendInput(uint nInputs, [MarshalAs(UnmanagedType.LPArray), In] INPUT[] pInputs, int cbSize);
-
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct INPUT
-        {
-            internal uint type;
-            internal InputUnion U;
-            internal static int Size
-            {
-                get { return Marshal.SizeOf(typeof(INPUT)); }
-            }
-        }
-
-        [StructLayout(LayoutKind.Explicit)]
-        internal struct InputUnion
-        {
-            [FieldOffset(0)]
-            internal MOUSEINPUT mi;
-            [FieldOffset(0)]
-            internal KEYBDINPUT ki;
-            [FieldOffset(0)]
-            internal HARDWAREINPUT hi;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct MOUSEINPUT
-        {
-            internal int dx;
-            internal int dy;
-            internal MouseEventDataXButtons mouseData;
-            internal MOUSEEVENTF dwFlags;
-            internal uint time;
-            internal UIntPtr dwExtraInfo;
-        }
-
-        [Flags]
-        internal enum MouseEventDataXButtons : uint
-        {
-            Nothing = 0x00000000,
-            XBUTTON1 = 0x00000001,
-            XBUTTON2 = 0x00000002
-        }
-
-        [Flags]
-        internal enum MOUSEEVENTF : uint
-        {
-            ABSOLUTE = 0x8000,
-            HWHEEL = 0x01000,
-            MOVE = 0x0001,
-            MOVE_NOCOALESCE = 0x2000,
-            LEFTDOWN = 0x0002,
-            LEFTUP = 0x0004,
-            RIGHTDOWN = 0x0008,
-            RIGHTUP = 0x0010,
-            MIDDLEDOWN = 0x0020,
-            MIDDLEUP = 0x0040,
-            VIRTUALDESK = 0x4000,
-            WHEEL = 0x0800,
-            XDOWN = 0x0080,
-            XUP = 0x0100
-
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct KEYBDINPUT
-        {
-            internal VirtualKeyShort wVk;
-            internal ScanCodeShort wScan;
-            internal KEYEVENTF dwFlags;
-            internal int time;
-            internal UIntPtr dwExtraInfo;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct HARDWAREINPUT
-        {
-            internal int uMsg;
-            internal short wParamL;
-            internal short wParamH;
-        }
-
-
-
-        [Flags]
-        internal enum KEYEVENTF : uint
-        {
-            EXTENDEDKEY = 0x0001,
-            KEYUP = 0x0002,
-            SCANCODE = 0x0008,
-            UNICODE = 0x0004
-        }
-
-        internal enum VirtualKeyShort : short
-        {
-            ///<summary>
-            ///Left mouse button
-            ///</summary>
-            LBUTTON = 0x01,
-            ///<summary>
-            ///Right mouse button
-            ///</summary>
-            RBUTTON = 0x02,
-            ///<summary>
-            ///Control-break processing
-            ///</summary>
-            CANCEL = 0x03,
-            ///<summary>
-            ///Middle mouse button (three-button mouse)
-            ///</summary>
-            MBUTTON = 0x04,
-            ///<summary>
-            ///Windows 2000/XP: X1 mouse button
-            ///</summary>
-            XBUTTON1 = 0x05,
-            ///<summary>
-            ///Windows 2000/XP: X2 mouse button
-            ///</summary>
-            XBUTTON2 = 0x06,
-            ///<summary>
-            ///BACKSPACE key
-            ///</summary>
-            BACK = 0x08,
-            ///<summary>
-            ///TAB key
-            ///</summary>
-            TAB = 0x09,
-            ///<summary>
-            ///CLEAR key
-            ///</summary>
-            CLEAR = 0x0C,
-            ///<summary>
-            ///ENTER key
-            ///</summary>
-            RETURN = 0x0D,
-            ///<summary>
-            ///SHIFT key
-            ///</summary>
-            SHIFT = 0x10,
-            ///<summary>
-            ///CTRL key
-            ///</summary>
-            CONTROL = 0x11,
-            ///<summary>
-            ///ALT key
-            ///</summary>
-            MENU = 0x12,
-            ///<summary>
-            ///PAUSE key
-            ///</summary>
-            PAUSE = 0x13,
-            ///<summary>
-            ///CAPS LOCK key
-            ///</summary>
-            CAPITAL = 0x14,
-            ///<summary>
-            ///Input Method Editor (IME) Kana mode
-            ///</summary>
-            KANA = 0x15,
-            ///<summary>
-            ///IME Hangul mode
-            ///</summary>
-            HANGUL = 0x15,
-            ///<summary>
-            ///IME Junja mode
-            ///</summary>
-            JUNJA = 0x17,
-            ///<summary>
-            ///IME final mode
-            ///</summary>
-            FINAL = 0x18,
-            ///<summary>
-            ///IME Hanja mode
-            ///</summary>
-            HANJA = 0x19,
-            ///<summary>
-            ///IME Kanji mode
-            ///</summary>
-            KANJI = 0x19,
-            ///<summary>
-            ///ESC key
-            ///</summary>
-            ESCAPE = 0x1B,
-            ///<summary>
-            ///IME convert
-            ///</summary>
-            CONVERT = 0x1C,
-            ///<summary>
-            ///IME nonconvert
-            ///</summary>
-            NONCONVERT = 0x1D,
-            ///<summary>
-            ///IME accept
-            ///</summary>
-            ACCEPT = 0x1E,
-            ///<summary>
-            ///IME mode change request
-            ///</summary>
-            MODECHANGE = 0x1F,
-            ///<summary>
-            ///SPACEBAR
-            ///</summary>
-            SPACE = 0x20,
-            ///<summary>
-            ///PAGE UP key
-            ///</summary>
-            PRIOR = 0x21,
-            ///<summary>
-            ///PAGE DOWN key
-            ///</summary>
-            NEXT = 0x22,
-            ///<summary>
-            ///END key
-            ///</summary>
-            END = 0x23,
-            ///<summary>
-            ///HOME key
-            ///</summary>
-            HOME = 0x24,
-            ///<summary>
-            ///LEFT ARROW key
-            ///</summary>
-            LEFT = 0x25,
-            ///<summary>
-            ///UP ARROW key
-            ///</summary>
-            UP = 0x26,
-            ///<summary>
-            ///RIGHT ARROW key
-            ///</summary>
-            RIGHT = 0x27,
-            ///<summary>
-            ///DOWN ARROW key
-            ///</summary>
-            DOWN = 0x28,
-            ///<summary>
-            ///SELECT key
-            ///</summary>
-            SELECT = 0x29,
-            ///<summary>
-            ///PRINT key
-            ///</summary>
-            PRINT = 0x2A,
-            ///<summary>
-            ///EXECUTE key
-            ///</summary>
-            EXECUTE = 0x2B,
-            ///<summary>
-            ///PRINT SCREEN key
-            ///</summary>
-            SNAPSHOT = 0x2C,
-            ///<summary>
-            ///INS key
-            ///</summary>
-            INSERT = 0x2D,
-            ///<summary>
-            ///DEL key
-            ///</summary>
-            DELETE = 0x2E,
-            ///<summary>
-            ///HELP key
-            ///</summary>
-            HELP = 0x2F,
-            ///<summary>
-            ///0 key
-            ///</summary>
-            KEY_0 = 0x30,
-            ///<summary>
-            ///1 key
-            ///</summary>
-            KEY_1 = 0x31,
-            ///<summary>
-            ///2 key
-            ///</summary>
-            KEY_2 = 0x32,
-            ///<summary>
-            ///3 key
-            ///</summary>
-            KEY_3 = 0x33,
-            ///<summary>
-            ///4 key
-            ///</summary>
-            KEY_4 = 0x34,
-            ///<summary>
-            ///5 key
-            ///</summary>
-            KEY_5 = 0x35,
-            ///<summary>
-            ///6 key
-            ///</summary>
-            KEY_6 = 0x36,
-            ///<summary>
-            ///7 key
-            ///</summary>
-            KEY_7 = 0x37,
-            ///<summary>
-            ///8 key
-            ///</summary>
-            KEY_8 = 0x38,
-            ///<summary>
-            ///9 key
-            ///</summary>
-            KEY_9 = 0x39,
-            ///<summary>
-            ///A key
-            ///</summary>
-            KEY_A = 0x41,
-            ///<summary>
-            ///B key
-            ///</summary>
-            KEY_B = 0x42,
-            ///<summary>
-            ///C key
-            ///</summary>
-            KEY_C = 0x43,
-            ///<summary>
-            ///D key
-            ///</summary>
-            KEY_D = 0x44,
-            ///<summary>
-            ///E key
-            ///</summary>
-            KEY_E = 0x45,
-            ///<summary>
-            ///F key
-            ///</summary>
-            KEY_F = 0x46,
-            ///<summary>
-            ///G key
-            ///</summary>
-            KEY_G = 0x47,
-            ///<summary>
-            ///H key
-            ///</summary>
-            KEY_H = 0x48,
-            ///<summary>
-            ///I key
-            ///</summary>
-            KEY_I = 0x49,
-            ///<summary>
-            ///J key
-            ///</summary>
-            KEY_J = 0x4A,
-            ///<summary>
-            ///K key
-            ///</summary>
-            KEY_K = 0x4B,
-            ///<summary>
-            ///L key
-            ///</summary>
-            KEY_L = 0x4C,
-            ///<summary>
-            ///M key
-            ///</summary>
-            KEY_M = 0x4D,
-            ///<summary>
-            ///N key
-            ///</summary>
-            KEY_N = 0x4E,
-            ///<summary>
-            ///O key
-            ///</summary>
-            KEY_O = 0x4F,
-            ///<summary>
-            ///P key
-            ///</summary>
-            KEY_P = 0x50,
-            ///<summary>
-            ///Q key
-            ///</summary>
-            KEY_Q = 0x51,
-            ///<summary>
-            ///R key
-            ///</summary>
-            KEY_R = 0x52,
-            ///<summary>
-            ///S key
-            ///</summary>
-            KEY_S = 0x53,
-            ///<summary>
-            ///T key
-            ///</summary>
-            KEY_T = 0x54,
-            ///<summary>
-            ///U key
-            ///</summary>
-            KEY_U = 0x55,
-            ///<summary>
-            ///V key
-            ///</summary>
-            KEY_V = 0x56,
-            ///<summary>
-            ///W key
-            ///</summary>
-            KEY_W = 0x57,
-            ///<summary>
-            ///X key
-            ///</summary>
-            KEY_X = 0x58,
-            ///<summary>
-            ///Y key
-            ///</summary>
-            KEY_Y = 0x59,
-            ///<summary>
-            ///Z key
-            ///</summary>
-            KEY_Z = 0x5A,
-            ///<summary>
-            ///Left Windows key (Microsoft Natural keyboard) 
-            ///</summary>
-            LWIN = 0x5B,
-            ///<summary>
-            ///Right Windows key (Natural keyboard)
-            ///</summary>
-            RWIN = 0x5C,
-            ///<summary>
-            ///Applications key (Natural keyboard)
-            ///</summary>
-            APPS = 0x5D,
-            ///<summary>
-            ///Computer Sleep key
-            ///</summary>
-            SLEEP = 0x5F,
-            ///<summary>
-            ///Numeric keypad 0 key
-            ///</summary>
-            NUMPAD0 = 0x60,
-            ///<summary>
-            ///Numeric keypad 1 key
-            ///</summary>
-            NUMPAD1 = 0x61,
-            ///<summary>
-            ///Numeric keypad 2 key
-            ///</summary>
-            NUMPAD2 = 0x62,
-            ///<summary>
-            ///Numeric keypad 3 key
-            ///</summary>
-            NUMPAD3 = 0x63,
-            ///<summary>
-            ///Numeric keypad 4 key
-            ///</summary>
-            NUMPAD4 = 0x64,
-            ///<summary>
-            ///Numeric keypad 5 key
-            ///</summary>
-            NUMPAD5 = 0x65,
-            ///<summary>
-            ///Numeric keypad 6 key
-            ///</summary>
-            NUMPAD6 = 0x66,
-            ///<summary>
-            ///Numeric keypad 7 key
-            ///</summary>
-            NUMPAD7 = 0x67,
-            ///<summary>
-            ///Numeric keypad 8 key
-            ///</summary>
-            NUMPAD8 = 0x68,
-            ///<summary>
-            ///Numeric keypad 9 key
-            ///</summary>
-            NUMPAD9 = 0x69,
-            ///<summary>
-            ///Multiply key
-            ///</summary>
-            MULTIPLY = 0x6A,
-            ///<summary>
-            ///Add key
-            ///</summary>
-            ADD = 0x6B,
-            ///<summary>
-            ///Separator key
-            ///</summary>
-            SEPARATOR = 0x6C,
-            ///<summary>
-            ///Subtract key
-            ///</summary>
-            SUBTRACT = 0x6D,
-            ///<summary>
-            ///Decimal key
-            ///</summary>
-            DECIMAL = 0x6E,
-            ///<summary>
-            ///Divide key
-            ///</summary>
-            DIVIDE = 0x6F,
-            ///<summary>
-            ///F1 key
-            ///</summary>
-            F1 = 0x70,
-            ///<summary>
-            ///F2 key
-            ///</summary>
-            F2 = 0x71,
-            ///<summary>
-            ///F3 key
-            ///</summary>
-            F3 = 0x72,
-            ///<summary>
-            ///F4 key
-            ///</summary>
-            F4 = 0x73,
-            ///<summary>
-            ///F5 key
-            ///</summary>
-            F5 = 0x74,
-            ///<summary>
-            ///F6 key
-            ///</summary>
-            F6 = 0x75,
-            ///<summary>
-            ///F7 key
-            ///</summary>
-            F7 = 0x76,
-            ///<summary>
-            ///F8 key
-            ///</summary>
-            F8 = 0x77,
-            ///<summary>
-            ///F9 key
-            ///</summary>
-            F9 = 0x78,
-            ///<summary>
-            ///F10 key
-            ///</summary>
-            F10 = 0x79,
-            ///<summary>
-            ///F11 key
-            ///</summary>
-            F11 = 0x7A,
-            ///<summary>
-            ///F12 key
-            ///</summary>
-            F12 = 0x7B,
-            ///<summary>
-            ///F13 key
-            ///</summary>
-            F13 = 0x7C,
-            ///<summary>
-            ///F14 key
-            ///</summary>
-            F14 = 0x7D,
-            ///<summary>
-            ///F15 key
-            ///</summary>
-            F15 = 0x7E,
-            ///<summary>
-            ///F16 key
-            ///</summary>
-            F16 = 0x7F,
-            ///<summary>
-            ///F17 key  
-            ///</summary>
-            F17 = 0x80,
-            ///<summary>
-            ///F18 key  
-            ///</summary>
-            F18 = 0x81,
-            ///<summary>
-            ///F19 key  
-            ///</summary>
-            F19 = 0x82,
-            ///<summary>
-            ///F20 key  
-            ///</summary>
-            F20 = 0x83,
-            ///<summary>
-            ///F21 key  
-            ///</summary>
-            F21 = 0x84,
-            ///<summary>
-            ///F22 key, (PPC only) Key used to lock device.
-            ///</summary>
-            F22 = 0x85,
-            ///<summary>
-            ///F23 key  
-            ///</summary>
-            F23 = 0x86,
-            ///<summary>
-            ///F24 key  
-            ///</summary>
-            F24 = 0x87,
-            ///<summary>
-            ///NUM LOCK key
-            ///</summary>
-            NUMLOCK = 0x90,
-            ///<summary>
-            ///SCROLL LOCK key
-            ///</summary>
-            SCROLL = 0x91,
-            ///<summary>
-            ///Left SHIFT key
-            ///</summary>
-            LSHIFT = 0xA0,
-            ///<summary>
-            ///Right SHIFT key
-            ///</summary>
-            RSHIFT = 0xA1,
-            ///<summary>
-            ///Left CONTROL key
-            ///</summary>
-            LCONTROL = 0xA2,
-            ///<summary>
-            ///Right CONTROL key
-            ///</summary>
-            RCONTROL = 0xA3,
-            ///<summary>
-            ///Left MENU key
-            ///</summary>
-            LMENU = 0xA4,
-            ///<summary>
-            ///Right MENU key
-            ///</summary>
-            RMENU = 0xA5,
-            ///<summary>
-            ///Windows 2000/XP: Browser Back key
-            ///</summary>
-            BROWSER_BACK = 0xA6,
-            ///<summary>
-            ///Windows 2000/XP: Browser Forward key
-            ///</summary>
-            BROWSER_FORWARD = 0xA7,
-            ///<summary>
-            ///Windows 2000/XP: Browser Refresh key
-            ///</summary>
-            BROWSER_REFRESH = 0xA8,
-            ///<summary>
-            ///Windows 2000/XP: Browser Stop key
-            ///</summary>
-            BROWSER_STOP = 0xA9,
-            ///<summary>
-            ///Windows 2000/XP: Browser Search key 
-            ///</summary>
-            BROWSER_SEARCH = 0xAA,
-            ///<summary>
-            ///Windows 2000/XP: Browser Favorites key
-            ///</summary>
-            BROWSER_FAVORITES = 0xAB,
-            ///<summary>
-            ///Windows 2000/XP: Browser Start and Home key
-            ///</summary>
-            BROWSER_HOME = 0xAC,
-            ///<summary>
-            ///Windows 2000/XP: Volume Mute key
-            ///</summary>
-            VOLUME_MUTE = 0xAD,
-            ///<summary>
-            ///Windows 2000/XP: Volume Down key
-            ///</summary>
-            VOLUME_DOWN = 0xAE,
-            ///<summary>
-            ///Windows 2000/XP: Volume Up key
-            ///</summary>
-            VOLUME_UP = 0xAF,
-            ///<summary>
-            ///Windows 2000/XP: Next Track key
-            ///</summary>
-            MEDIA_NEXT_TRACK = 0xB0,
-            ///<summary>
-            ///Windows 2000/XP: Previous Track key
-            ///</summary>
-            MEDIA_PREV_TRACK = 0xB1,
-            ///<summary>
-            ///Windows 2000/XP: Stop Media key
-            ///</summary>
-            MEDIA_STOP = 0xB2,
-            ///<summary>
-            ///Windows 2000/XP: Play/Pause Media key
-            ///</summary>
-            MEDIA_PLAY_PAUSE = 0xB3,
-            ///<summary>
-            ///Windows 2000/XP: Start Mail key
-            ///</summary>
-            LAUNCH_MAIL = 0xB4,
-            ///<summary>
-            ///Windows 2000/XP: Select Media key
-            ///</summary>
-            LAUNCH_MEDIA_SELECT = 0xB5,
-            ///<summary>
-            ///Windows 2000/XP: Start Application 1 key
-            ///</summary>
-            LAUNCH_APP1 = 0xB6,
-            ///<summary>
-            ///Windows 2000/XP: Start Application 2 key
-            ///</summary>
-            LAUNCH_APP2 = 0xB7,
-            ///<summary>
-            ///Used for miscellaneous characters; it can vary by keyboard.
-            ///</summary>
-            OEM_1 = 0xBA,
-            ///<summary>
-            ///Windows 2000/XP: For any country/region, the '+' key
-            ///</summary>
-            OEM_PLUS = 0xBB,
-            ///<summary>
-            ///Windows 2000/XP: For any country/region, the ',' key
-            ///</summary>
-            OEM_COMMA = 0xBC,
-            ///<summary>
-            ///Windows 2000/XP: For any country/region, the '-' key
-            ///</summary>
-            OEM_MINUS = 0xBD,
-            ///<summary>
-            ///Windows 2000/XP: For any country/region, the '.' key
-            ///</summary>
-            OEM_PERIOD = 0xBE,
-            ///<summary>
-            ///Used for miscellaneous characters; it can vary by keyboard.
-            ///</summary>
-            OEM_2 = 0xBF,
-            ///<summary>
-            ///Used for miscellaneous characters; it can vary by keyboard. 
-            ///</summary>
-            OEM_3 = 0xC0,
-            ///<summary>
-            ///Used for miscellaneous characters; it can vary by keyboard. 
-            ///</summary>
-            OEM_4 = 0xDB,
-            ///<summary>
-            ///Used for miscellaneous characters; it can vary by keyboard. 
-            ///</summary>
-            OEM_5 = 0xDC,
-            ///<summary>
-            ///Used for miscellaneous characters; it can vary by keyboard. 
-            ///</summary>
-            OEM_6 = 0xDD,
-            ///<summary>
-            ///Used for miscellaneous characters; it can vary by keyboard. 
-            ///</summary>
-            OEM_7 = 0xDE,
-            ///<summary>
-            ///Used for miscellaneous characters; it can vary by keyboard.
-            ///</summary>
-            OEM_8 = 0xDF,
-            ///<summary>
-            ///Windows 2000/XP: Either the angle bracket key or the backslash key on the RT 102-key keyboard
-            ///</summary>
-            OEM_102 = 0xE2,
-            ///<summary>
-            ///Windows 95/98/Me, Windows NT 4.0, Windows 2000/XP: IME PROCESS key
-            ///</summary>
-            PROCESSKEY = 0xE5,
-            ///<summary>
-            ///Windows 2000/XP: Used to pass Unicode characters as if they were keystrokes.
-            ///The VK_PACKET key is the low word of a 32-bit Virtual Key value used for non-keyboard input methods. For more information,
-            ///see Remark in KEYBDINPUT, SendInput, WM_KEYDOWN, and WM_KEYUP
-            ///</summary>
-            PACKET = 0xE7,
-            ///<summary>
-            ///Attn key
-            ///</summary>
-            ATTN = 0xF6,
-            ///<summary>
-            ///CrSel key
-            ///</summary>
-            CRSEL = 0xF7,
-            ///<summary>
-            ///ExSel key
-            ///</summary>
-            EXSEL = 0xF8,
-            ///<summary>
-            ///Erase EOF key
-            ///</summary>
-            EREOF = 0xF9,
-            ///<summary>
-            ///Play key
-            ///</summary>
-            PLAY = 0xFA,
-            ///<summary>
-            ///Zoom key
-            ///</summary>
-            ZOOM = 0xFB,
-            ///<summary>
-            ///Reserved 
-            ///</summary>
-            NONAME = 0xFC,
-            ///<summary>
-            ///PA1 key
-            ///</summary>
-            PA1 = 0xFD,
-            ///<summary>
-            ///Clear key
-            ///</summary>
-            OEM_CLEAR = 0xFE
-        }
-
-        internal enum ScanCodeShort : short
-        {
-            LBUTTON = 0,
-            RBUTTON = 0,
-            CANCEL = 70,
-            MBUTTON = 0,
-            XBUTTON1 = 0,
-            XBUTTON2 = 0,
-            BACK = 14,
-            TAB = 15,
-            CLEAR = 76,
-            RETURN = 28,
-            SHIFT = 42,
-            CONTROL = 29,
-            MENU = 56,
-            PAUSE = 0,
-            CAPITAL = 58,
-            KANA = 0,
-            HANGUL = 0,
-            JUNJA = 0,
-            FINAL = 0,
-            HANJA = 0,
-            KANJI = 0,
-            ESCAPE = 1,
-            CONVERT = 0,
-            NONCONVERT = 0,
-            ACCEPT = 0,
-            MODECHANGE = 0,
-            SPACE = 57,
-            PRIOR = 73,
-            NEXT = 81,
-            END = 79,
-            HOME = 71,
-            LEFT = 75,
-            UP = 72,
-            RIGHT = 77,
-            DOWN = 80,
-            SELECT = 0,
-            PRINT = 0,
-            EXECUTE = 0,
-            SNAPSHOT = 84,
-            INSERT = 82,
-            DELETE = 83,
-            HELP = 99,
-            KEY_0 = 11,
-            KEY_1 = 2,
-            KEY_2 = 3,
-            KEY_3 = 4,
-            KEY_4 = 5,
-            KEY_5 = 6,
-            KEY_6 = 7,
-            KEY_7 = 8,
-            KEY_8 = 9,
-            KEY_9 = 10,
-            KEY_A = 30,
-            KEY_B = 48,
-            KEY_C = 46,
-            KEY_D = 32,
-            KEY_E = 18,
-            KEY_F = 33,
-            KEY_G = 34,
-            KEY_H = 35,
-            KEY_I = 23,
-            KEY_J = 36,
-            KEY_K = 37,
-            KEY_L = 38,
-            KEY_M = 50,
-            KEY_N = 49,
-            KEY_O = 24,
-            KEY_P = 25,
-            KEY_Q = 16,
-            KEY_R = 19,
-            KEY_S = 31,
-            KEY_T = 20,
-            KEY_U = 22,
-            KEY_V = 47,
-            KEY_W = 17,
-            KEY_X = 45,
-            KEY_Y = 21,
-            KEY_Z = 44,
-            LWIN = 91,
-            RWIN = 92,
-            APPS = 93,
-            SLEEP = 95,
-            NUMPAD0 = 82,
-            NUMPAD1 = 79,
-            NUMPAD2 = 80,
-            NUMPAD3 = 81,
-            NUMPAD4 = 75,
-            NUMPAD5 = 76,
-            NUMPAD6 = 77,
-            NUMPAD7 = 71,
-            NUMPAD8 = 72,
-            NUMPAD9 = 73,
-            MULTIPLY = 55,
-            ADD = 78,
-            SEPARATOR = 0,
-            SUBTRACT = 74,
-            DECIMAL = 83,
-            DIVIDE = 53,
-            F1 = 59,
-            F2 = 60,
-            F3 = 61,
-            F4 = 62,
-            F5 = 63,
-            F6 = 64,
-            F7 = 65,
-            F8 = 66,
-            F9 = 67,
-            F10 = 68,
-            F11 = 87,
-            F12 = 88,
-            F13 = 100,
-            F14 = 101,
-            F15 = 102,
-            F16 = 103,
-            F17 = 104,
-            F18 = 105,
-            F19 = 106,
-            F20 = 107,
-            F21 = 108,
-            F22 = 109,
-            F23 = 110,
-            F24 = 118,
-            NUMLOCK = 69,
-            SCROLL = 70,
-            LSHIFT = 42,
-            RSHIFT = 54,
-            LCONTROL = 29,
-            RCONTROL = 29,
-            LMENU = 56,
-            RMENU = 56,
-            BROWSER_BACK = 106,
-            BROWSER_FORWARD = 105,
-            BROWSER_REFRESH = 103,
-            BROWSER_STOP = 104,
-            BROWSER_SEARCH = 101,
-            BROWSER_FAVORITES = 102,
-            BROWSER_HOME = 50,
-            VOLUME_MUTE = 32,
-            VOLUME_DOWN = 46,
-            VOLUME_UP = 48,
-            MEDIA_NEXT_TRACK = 25,
-            MEDIA_PREV_TRACK = 16,
-            MEDIA_STOP = 36,
-            MEDIA_PLAY_PAUSE = 34,
-            LAUNCH_MAIL = 108,
-            LAUNCH_MEDIA_SELECT = 109,
-            LAUNCH_APP1 = 107,
-            LAUNCH_APP2 = 33,
-            OEM_1 = 39,
-            OEM_PLUS = 13,
-            OEM_COMMA = 51,
-            OEM_MINUS = 12,
-            OEM_PERIOD = 52,
-            OEM_2 = 53,
-            OEM_3 = 41,
-            OEM_4 = 26,
-            OEM_5 = 43,
-            OEM_6 = 27,
-            OEM_7 = 40,
-            OEM_8 = 0,
-            OEM_102 = 86,
-            PROCESSKEY = 0,
-            PACKET = 0,
-            ATTN = 0,
-            CRSEL = 0,
-            EXSEL = 0,
-            EREOF = 93,
-            PLAY = 0,
-            ZOOM = 98,
-            NONAME = 0,
-            PA1 = 0,
-            OEM_CLEAR = 0,
-        }
-
         private void directInputRadiobutton_Clicked(object sender, EventArgs e)
         {
             directInputRadiobutton.Checked = true;
@@ -1862,7 +715,7 @@ namespace AnalogStick_H_Shifter
             if (savedLayoutsListBox.SelectedItem != null)
             {
                 gearRectangles = ReadGearListFromFile(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
-    
+
                 PaintGears();
             }
         }
@@ -1891,19 +744,31 @@ namespace AnalogStick_H_Shifter
             Process.Start("https://www.youtube.com/c/BeanJ?sub_confirmation=1");
         }
 
-        bool PointIsInside(Rectangle rect, PointF mouseclick)
+        bool PointIsInside(Rectangle rect, PointF mouseclick, bool grabber)
         {
             int distanceFromCorner = 10;
             double area = distanceFromCorner * 2 * distanceFromCorner * 2;
 
-            PointF[] v = {
-                new PointF(rect.X - distanceFromCorner, rect.Y - distanceFromCorner),
-                new PointF(rect.X + distanceFromCorner, rect.Y - distanceFromCorner),
-                new PointF(rect.X + distanceFromCorner, rect.Y + distanceFromCorner),
-                new PointF(rect.X - distanceFromCorner, rect.Y + distanceFromCorner)
-            };
+            PointF[] v;
 
-            //rect.X + rect.Width, rect.Y + rect.Height };
+            if (grabber)
+            {
+                v = new PointF[] {
+                    new PointF(rect.X - distanceFromCorner, rect.Y - distanceFromCorner),
+                    new PointF(rect.X + distanceFromCorner, rect.Y - distanceFromCorner),
+                    new PointF(rect.X + distanceFromCorner, rect.Y + distanceFromCorner),
+                    new PointF(rect.X - distanceFromCorner, rect.Y + distanceFromCorner)
+                };
+            }
+            else
+            {
+                v = new PointF[] {
+                    new PointF(rect.X + rect.Width - distanceFromCorner, rect.Y + rect.Height - distanceFromCorner),
+                    new PointF(rect.X + rect.Width + distanceFromCorner, rect.Y + rect.Height - distanceFromCorner),
+                    new PointF(rect.X + rect.Width + distanceFromCorner, rect.Y + rect.Height + distanceFromCorner),
+                    new PointF(rect.X + rect.Width - distanceFromCorner, rect.Y + rect.Height + distanceFromCorner)
+                };
+            }
 
             // calculate area of all rectangle-vercites to the mouseclick coordinates
             float measuredArea =
@@ -1925,7 +790,6 @@ namespace AnalogStick_H_Shifter
             }
             return true;
         }
-
 
         float TriangleArea(PointF A, PointF B, PointF C)
         {

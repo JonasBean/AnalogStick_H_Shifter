@@ -63,9 +63,29 @@ namespace AnalogStick_H_Shifter.Properties {
         /// <summary>
         ///   Sucht eine lokalisierte Ressource vom Typ System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap directionArrows {
+            get {
+                object obj = ResourceManager.GetObject("directionArrows", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Sucht eine lokalisierte Ressource vom Typ System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap LogoNeu___Kopie {
             get {
                 object obj = ResourceManager.GetObject("LogoNeu - Kopie", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Sucht eine lokalisierte Ressource vom Typ System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap scalingArrow {
+            get {
+                object obj = ResourceManager.GetObject("scalingArrow", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
