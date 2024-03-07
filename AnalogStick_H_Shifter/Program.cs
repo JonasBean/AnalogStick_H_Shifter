@@ -8,9 +8,6 @@ namespace AnalogStick_H_Shifter
 {
     static class Program
     {
-        /// <summary>
-        /// Der Haupteinstiegspunkt für die Anwendung.
-        /// </summary>
         [STAThread]
         static void Main()
         {
