@@ -86,31 +86,20 @@ namespace AnalogStick_H_Shifter
             }
             else
             {
-                var tempRect = new Rectangle(25, 25, 25, 25);
                 gearRectangles = new List<GearRectangle> {
-                    new GearRectangle(120, 120, 30, 30, rectangleStrings[0], tempRect),
-                    new GearRectangle(120, 120, 350, 30, rectangleStrings[1], tempRect)
+                    new GearRectangle(100, 100, 30, 30, rectangleStrings[0], new Rectangle(180, 200, 120, 120)),
+                    new GearRectangle(200, 100, 300, 30, rectangleStrings[1], new Rectangle(330, 200, 120, 120)),
+                    new GearRectangle(120, 120, 600, 30, rectangleStrings[2], new Rectangle(480, 200, 120, 120)),
+                    new GearRectangle(120, 120, 30, 300, rectangleStrings[3], new Rectangle(180, 500, 120, 120)),
+                    new GearRectangle(120, 120, 300, 300, rectangleStrings[4], new Rectangle(330, 500, 120, 120)),
+                    new GearRectangle(120, 120, 600,300, rectangleStrings[5], new Rectangle(480, 500, 120, 120)),
+                    new GearRectangle(120, 120, 300, 600, rectangleStrings[6], new Rectangle(20, 350, 120, 120))
                 };
-
             }
 
             PaintGears();
 
             gearRightNow.Font = new Font("Microsoft Sans Serif", 55, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
-
-            try
-            {
-                Directory.CreateDirectory(layoutFolder);
-                if (savedLayoutsListBox.Items.Count != 0)
-                {
-                    //rectangles = ReadFromBinaryFile<Rectangle[]>(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
-                    Console.WriteLine("Gearlayout-Files loaded successfully");
-                }
-            }
-            catch (Exception)
-            {
-                Console.WriteLine("Gearlayout-Files not found");
-            }
 
             try
             {
@@ -180,8 +169,6 @@ namespace AnalogStick_H_Shifter
             MouseEventArgs me = (MouseEventArgs)e;
             mouseCoords = new Point(me.Location.X, me.Location.Y);
 
-
-
             CheckForGrabHandle(mouseCoords);
         }
 
@@ -189,8 +176,8 @@ namespace AnalogStick_H_Shifter
         {
             overlayBox.MouseMove -= overlayBox_MouseMoved;
 
-            if (overlayImage != null)
-                overlayImage.Dispose();
+            //if (overlayImage != null)
+            //    overlayImage.Dispose();
 
             currentlyGrabbedRectangle = -99;
 
@@ -250,16 +237,14 @@ namespace AnalogStick_H_Shifter
                         gearRectangles[currentlyGrabbedRectangle].YPosition - mouseCoords.Y
                     );
 
-                    if (paintingbGWorker == null)
+                    if (paintingbGWorker == null || !paintingbGWorker.IsBusy)
                     {
                         paintingbGWorker = new BackgroundWorker();
                         paintingbGWorker.DoWork += new DoWorkEventHandler(paintingbGWorker_DoWork);
-                    }
-
-                    paintingbGWorker.WorkerReportsProgress = true;
+                        paintingbGWorker.WorkerReportsProgress = true;
                         paintingbGWorker.WorkerSupportsCancellation = true;
                         paintingbGWorker.RunWorkerAsync();
-
+                    }
                 }
 
                 if (PointIsInside(gearRectangles[i].Rect, mousePoint, false))
@@ -272,18 +257,15 @@ namespace AnalogStick_H_Shifter
                         gearRectangles[currentlyGrabbedRectangle].YPosition + gearRectangles[currentlyGrabbedRectangle].Height - mouseCoords.Y
                     );
 
-                    if (paintingbGWorker == null)
+                    if (paintingbGWorker == null || !paintingbGWorker.IsBusy)
                     {
                         paintingbGWorker = new BackgroundWorker();
                         paintingbGWorker.DoWork += new DoWorkEventHandler(paintingbGWorker_DoWork);
-                    }
-
-                    paintingbGWorker.WorkerReportsProgress = true;
+                        paintingbGWorker.WorkerReportsProgress = true;
                         paintingbGWorker.WorkerSupportsCancellation = true;
                         paintingbGWorker.RunWorkerAsync();
                     }
-
-
+                }
             }
         }
 
@@ -581,11 +563,6 @@ namespace AnalogStick_H_Shifter
 
         private void PaintGears()
         {
-            if (overlayImage != null)
-            {
-                overlayImage.Dispose();
-            }
-
             overlayImage = new Bitmap(imageSize, imageSize);
 
             using (Graphics graph = Graphics.FromImage(overlayImage))
