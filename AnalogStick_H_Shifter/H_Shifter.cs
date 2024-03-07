@@ -173,7 +173,7 @@ namespace AnalogStick_H_Shifter
             overlayBox_Click(null, null);
         }
 
-        private void OverlayBox_MouseDown(object sender, EventArgs e)
+        private void overlayBox_MouseDown(object sender, EventArgs e)
         {
             overlayBox.MouseMove += overlayBox_MouseMoved;
 
