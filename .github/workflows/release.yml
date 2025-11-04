@@ -1,0 +1,53 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run build script (Release)
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\\build.ps1 -Configuration Release
+
+      - name: Prepare artifact (zip, exclude PDBs)
+        run: |
+          $out = 'AnalogStick_H_Shifter\\bin\\Release'
+          $zip = "release-${{ github.ref_name }}.zip"
+          if (Test-Path $zip) { Remove-Item $zip }
+          # Collect files excluding .pdb files
+          $files = Get-ChildItem -Path $out -Recurse -File | Where-Object { $_.Extension -ne '.pdb' } | ForEach-Object { $_.FullName }
+          if ($files.Count -eq 0) { Write-Error "No files found to zip in $out"; exit 1 }
+          Compress-Archive -LiteralPath $files -DestinationPath $zip
+          Write-Host "ZIP=$zip"
+        shell: powershell
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: ${{ github.ref_name }}
+          body: "Automatically generated release build for ${{ github.ref_name }}. Please download the ZIP file (contains the EXE and required dependencies). The standalone EXE may require additional runtime components on some systems."
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release-${{ github.ref_name }}.zip
+          asset_name: analogstick-h-shifter-${{ github.ref_name }}.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      # EXE upload removed: only the ZIP archive is published to releases to ensure users download the full package with dependencies.

@@ -338,3 +338,27 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+
+# ------------------------------------------------------------------
+# Local tools, IDE files and AI assistant traces (project-specific)
+# Keep local-only files out of commits (nuget.exe, editor settings, Copilot artifacts)
+# ------------------------------------------------------------------
+
+# Local NuGet CLI (downloaded for local restores)
+nuget.exe
+
+# Visual Studio Code workspace and settings (local only)
+.vscode/
+*.code-workspace
+
+# GitHub Copilot / assistant traces
+.copilot/
+*.copilot
+*.suggestions
+*.chat
+
+# Local release zips (built artifacts)
+release-*.zip
+
+# Ignore any files created by local packaging or test runs
+*.local
