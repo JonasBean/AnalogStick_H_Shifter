@@ -360,5 +360,8 @@ nuget.exe
 # Local release zips (built artifacts)
 release-*.zip
 
+# Local deploy script (keep local deploy helper out of commits)
+deploy-release.ps1
+
 # Ignore any files created by local packaging or test runs
 *.local
