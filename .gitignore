@@ -363,5 +363,8 @@ release-*.zip
 # Local deploy script (keep local deploy helper out of commits)
 deploy-release.ps1
 
+# Archived / unused assets moved out of project
+unused-assets/
+
 # Ignore any files created by local packaging or test runs
 *.local
