@@ -1,7 +1,7 @@
 AnalogStick_H_Shifter
 =====================
 
-What this program does (user-facing summary)
+What this program does
 ------------------------------------------
 AnalogStick_H_Shifter is a small Windows Forms utility that lets you use a gamepad's analog stick as an "H‑shifter" for applications or games that accept keyboard gear inputs. The program reads the right analog stick (X/Y) from either an XInput-compatible controller (Xbox style) or a DirectInput joystick/gamepad, displays a visual axis, and maps stick positions into configurable rectangular "gear" regions. When the stick enters a region the app simulates keyboard scancodes (keys 1–6 for gears and 9 for reverse) using the Windows SendInput API so the target program receives the events as normal key presses.
 

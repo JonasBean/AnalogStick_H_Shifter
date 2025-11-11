@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using static AnalogStick_H_Shifter.ControllerHandling;
 
@@ -44,7 +43,15 @@ namespace AnalogStick_H_Shifter
         private BackgroundWorker bGWorker = null;
         private BackgroundWorker paintingbGWorker = null;
 
-        readonly Brush[] rectColors = new Brush[] { Brushes.Red, Brushes.Orange, Brushes.Gray, Brushes.Green, Brushes.LightBlue, Brushes.Blue, Brushes.Pink };
+        readonly Brush[] rectColors = new Brush[] { 
+            new SolidBrush(Color.FromArgb(255, 46, 204, 113)), // Green (Gear 1)
+            new SolidBrush(Color.FromArgb(255, 230, 126, 34)), // Orange (Gear 2)
+            new SolidBrush(Color.FromArgb(255, 149, 165, 166)), // Gray (Gear 3)
+            new SolidBrush(Color.FromArgb(255, 52, 152, 219)), // Light Blue (Gear 4)
+            new SolidBrush(Color.FromArgb(255, 155, 89, 182)), // Purple (Gear 5)
+            new SolidBrush(Color.FromArgb(255, 241, 196, 15)), // Yellow (Gear 6)
+            new SolidBrush(Color.FromArgb(255, 231, 76, 60))   // Red (Reverse gear)
+        };
         readonly string[] rectangleStrings = new string[] { "1", "2", "3", "4", "5", "6", "R", };
 
         List<GearRectangle> gearRectangles = new List<GearRectangle>();
@@ -86,14 +93,15 @@ namespace AnalogStick_H_Shifter
             }
             else
             {
+                // Standard H-shift layout: 1-3-5 top, 2-4-6 bottom
                 gearRectangles = new List<GearRectangle> {
-                    new GearRectangle(100, 100, 30, 30, rectangleStrings[0], new Rectangle(180, 200, 120, 120)),
-                    new GearRectangle(200, 100, 300, 30, rectangleStrings[1], new Rectangle(330, 200, 120, 120)),
-                    new GearRectangle(120, 120, 600, 30, rectangleStrings[2], new Rectangle(480, 200, 120, 120)),
-                    new GearRectangle(120, 120, 30, 300, rectangleStrings[3], new Rectangle(180, 500, 120, 120)),
-                    new GearRectangle(120, 120, 300, 300, rectangleStrings[4], new Rectangle(330, 500, 120, 120)),
-                    new GearRectangle(120, 120, 600,300, rectangleStrings[5], new Rectangle(480, 500, 120, 120)),
-                    new GearRectangle(120, 120, 300, 600, rectangleStrings[6], new Rectangle(20, 350, 120, 120))
+                    new GearRectangle(100, 100, 30, 30, rectangleStrings[0], new Rectangle(180, 200, 120, 120)),  // Gear 1: Top Left
+                    new GearRectangle(200, 100, 300, 30, rectangleStrings[1], new Rectangle(180, 500, 120, 120)), // Gear 2: Bottom Left  
+                    new GearRectangle(120, 120, 600, 30, rectangleStrings[2], new Rectangle(330, 200, 120, 120)), // Gear 3: Top Center
+                    new GearRectangle(120, 120, 30, 300, rectangleStrings[3], new Rectangle(330, 500, 120, 120)), // Gear 4: Bottom Center
+                    new GearRectangle(120, 120, 300, 300, rectangleStrings[4], new Rectangle(480, 200, 120, 120)), // Gear 5: Top Right
+                    new GearRectangle(120, 120, 600,300, rectangleStrings[5], new Rectangle(480, 500, 120, 120)),  // Gear 6: Bottom Right
+                    new GearRectangle(120, 120, 300, 600, rectangleStrings[6], new Rectangle(20, 350, 120, 120))   // Reverse: Left Center
                 };
             }
 
@@ -317,7 +325,36 @@ namespace AnalogStick_H_Shifter
 
         private void resetImageButton_Click(object sender, EventArgs e)
         {
+            // Set the flag for the next paint operation
             paintItOnce = true;
+            
+            // Immediately perform a reset of the image, even when not active
+            ResetAxisImage();
+        }
+
+        private void ResetAxisImage()
+        {
+            try
+            {
+                if (axisImage != null)
+                {
+                    using (Graphics graph = Graphics.FromImage(axisImage))
+                    {
+                        // Redraw the background (Reset)
+                        graph.FillRectangle(new SolidBrush(Color.FromArgb(55, 55, 58)), new Rectangle(0, 0, imageSize, imageSize));
+                    }
+                    
+                    // Update the display immediately
+                    axisBox.Image = axisImage;
+                    axisBox.Invalidate();
+                    axisBox.Refresh();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Error handling in case the image is not available
+                Console.WriteLine("Error resetting axis image: " + ex.Message);
+            }
         }
 
         private void activateControllerButton_Click(object sender, EventArgs e)
@@ -337,12 +374,18 @@ namespace AnalogStick_H_Shifter
                 bGWorker.WorkerSupportsCancellation = true;
                 bGWorker.RunWorkerAsync();
 
-                activateControllerButton.BackColor = Color.YellowGreen;
+                // Green background for active state
+                activateControllerButton.BackColor = Color.FromArgb(255, 46, 204, 113); // Green
+                activateControllerButton.ForeColor = Color.Black; // Black text for better contrast
+                activateControllerButton.Text = "Active";
             }
             else
             {
                 bGWorker.CancelAsync();
-                activateControllerButton.BackColor = Color.Transparent;
+                // Back to original color for inactive state
+                activateControllerButton.BackColor = Color.FromArgb(255, 45, 45, 48); // Dark gray
+                activateControllerButton.ForeColor = Color.White; // White text on dark background
+                activateControllerButton.Text = "Activate";
             }
         }
 
@@ -392,7 +435,7 @@ namespace AnalogStick_H_Shifter
                     {
                         if (paintItOnce)
                         {
-                            graph.FillRectangle(Brushes.White, new Rectangle(0, 0, imageSize, imageSize));
+                            graph.FillRectangle(new SolidBrush(Color.FromArgb(55, 55, 58)), new Rectangle(0, 0, imageSize, imageSize));
                             paintItOnce = false;
                         }
 
@@ -473,44 +516,44 @@ namespace AnalogStick_H_Shifter
 
                 switch (previousGearInBackground - 1)
                 {
-                    case 1:
-                        gearRightNow.ForeColor = Color.Red;
+                    case 1: // Gear 1
+                        gearRightNow.ForeColor = Color.FromArgb(255, 46, 204, 113); // Green (like rectColors[0])
                         gearRightNow.Text = (previousGearInBackground - 1).ToString();
                         shiftCounter[0]++;
                         frstGearLabel.Text = shiftCounter[0].ToString();
                         break;
-                    case 2:
-                        gearRightNow.ForeColor = Color.Orange;
+                    case 2: // Gear 2
+                        gearRightNow.ForeColor = Color.FromArgb(255, 230, 126, 34); // Orange (like rectColors[1])
                         gearRightNow.Text = (previousGearInBackground - 1).ToString();
                         shiftCounter[1]++;
                         scndGearLabel.Text = shiftCounter[1].ToString();
                         break;
-                    case 3:
-                        gearRightNow.ForeColor = Color.Yellow;
+                    case 3: // Gear 3
+                        gearRightNow.ForeColor = Color.FromArgb(255, 149, 165, 166); // Gray (like rectColors[2])
                         gearRightNow.Text = (previousGearInBackground - 1).ToString();
                         shiftCounter[2]++;
                         thrdGearLabel.Text = shiftCounter[2].ToString();
                         break;
-                    case 4:
-                        gearRightNow.ForeColor = Color.Green;
+                    case 4: // Gear 4
+                        gearRightNow.ForeColor = Color.FromArgb(255, 52, 152, 219); // Light blue (like rectColors[3])
                         gearRightNow.Text = (previousGearInBackground - 1).ToString();
                         shiftCounter[3]++;
                         frthGearLabel.Text = shiftCounter[3].ToString();
                         break;
-                    case 5:
-                        gearRightNow.ForeColor = Color.LightBlue;
+                    case 5: // Gear 5
+                        gearRightNow.ForeColor = Color.FromArgb(255, 155, 89, 182); // Purple (like rectColors[4])
                         gearRightNow.Text = (previousGearInBackground - 1).ToString();
                         shiftCounter[4]++;
                         ffthGearLabel.Text = shiftCounter[4].ToString();
                         break;
-                    case 6:
-                        gearRightNow.ForeColor = Color.Blue;
+                    case 6: // Gear 6
+                        gearRightNow.ForeColor = Color.FromArgb(255, 241, 196, 15); // Yellow (like rectColors[5])
                         gearRightNow.Text = (previousGearInBackground - 1).ToString();
                         shiftCounter[5]++;
                         sxthGearLabel.Text = shiftCounter[5].ToString();
                         break;
-                    case 9:
-                        gearRightNow.ForeColor = Color.Pink;
+                    case 9: // Reverse gear
+                        gearRightNow.ForeColor = Color.FromArgb(255, 231, 76, 60); // Red (like rectColors[6])
                         gearRightNow.Text = "R";
                         shiftCounter[6]++;
                         rvrsGearLabel.Text = shiftCounter[6].ToString();
@@ -570,13 +613,42 @@ namespace AnalogStick_H_Shifter
                 for (int i = 0; i < gearRectangles.Count; i++)
                 {
                     // Gear-Rectangle
-                    graph.DrawRectangle(new Pen(rectColors[i], 3), gearRectangles[i].Rect);
+                    using(var path = new System.Drawing.Drawing2D.GraphicsPath())
+                    {
+                        path.AddRectangle(gearRectangles[i].Rect);
+                        graph.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                        graph.DrawPath(new Pen(rectColors[i], 3), path);
+                    }
 
-                    // Gear-Name
-                    graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition + gearRectangles[i].Width - 22, gearRectangles[i].YPosition - 12, 30, 30);
-                    graph.DrawRectangle(new Pen(rectColors[i], 3), gearRectangles[i].XPosition + gearRectangles[i].Width - 22, gearRectangles[i].YPosition - 12, 30, 30);
-                    Font drawFont = new Font("Segoe UI", 18, FontStyle.Bold);
-                    graph.DrawString(gearRectangles[i].Gear, drawFont, rectColors[i], new Point(gearRectangles[i].XPosition + gearRectangles[i].Width - 16, gearRectangles[i].YPosition - 15));
+                    // Gear-Name with modern styling
+                    var gearNameRect = new Rectangle(
+                        gearRectangles[i].XPosition + gearRectangles[i].Width - 22,
+                        gearRectangles[i].YPosition - 12,
+                        30, 30);
+                    
+                    using(var path = new System.Drawing.Drawing2D.GraphicsPath())
+                    {
+                        path.AddRectangle(gearNameRect);
+                        graph.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                        
+                        // Fill with semi-transparent white
+                        graph.FillPath(new SolidBrush(Color.FromArgb(240, 255, 255, 255)), path);
+                        
+                        // Draw border
+                        graph.DrawPath(new Pen(rectColors[i], 2), path);
+                    }
+                    
+                    // Draw gear number with modern font
+                    using(Font drawFont = new Font("Segoe UI", 16, FontStyle.Bold))
+                    {
+                        var format = new StringFormat()
+                        {
+                            Alignment = StringAlignment.Center,
+                            LineAlignment = StringAlignment.Center
+                        };
+                        graph.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+                        graph.DrawString(gearRectangles[i].Gear, drawFont, rectColors[i], gearNameRect, format);
+                    }
 
                     // Gear-Grabber
                     graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition - 8, gearRectangles[i].YPosition - 10, 20, 23);
@@ -757,14 +829,14 @@ namespace AnalogStick_H_Shifter
                 };
             }
 
-            // calculate area of all rectangle-vercites to the mouseclick coordinates
+            // calculate area of all rectangle-vertices to the mouseclick coordinates
             float measuredArea =
                 TriangleArea(mouseclick, v[0], v[1]) +
                 TriangleArea(mouseclick, v[1], v[2]) +
                 TriangleArea(mouseclick, v[2], v[3]) +
                 TriangleArea(mouseclick, v[3], v[0]);
 
-            // check for negativ values
+            // check for negative values
             if (measuredArea < 0)
             {
                 measuredArea *= -1;
@@ -782,12 +854,12 @@ namespace AnalogStick_H_Shifter
         {
             float triangleArea = ((B.X * A.Y - A.X * B.Y) + (C.X * B.Y - B.X * C.Y) + (A.X * C.Y - C.X * A.Y)) / 2;
 
-            // check for negativ values
+            // check for negative values
             if (triangleArea < 0)
             {
                 triangleArea *= -1;
             }
-            // caltulate area of triangle with points
+            // calculate area of triangle with points
             return triangleArea;
         }
     }

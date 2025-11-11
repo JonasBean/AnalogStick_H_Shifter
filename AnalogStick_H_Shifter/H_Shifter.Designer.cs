@@ -1,4 +1,7 @@
-﻿namespace AnalogStick_H_Shifter
+﻿using System.Drawing;
+using System.Windows.Forms;
+
+namespace AnalogStick_H_Shifter
 {
     partial class H_Shifter
     {
@@ -49,6 +52,7 @@
             this.savedLayoutsListBox = new System.Windows.Forms.ListBox();
             this.loadButton = new System.Windows.Forms.Button();
             this.colorDialog1 = new System.Windows.Forms.ColorDialog();
+            this.gearDisplayPanel = new System.Windows.Forms.Panel();
             this.layoutNameBox = new System.Windows.Forms.TextBox();
             this.pictureBox3 = new System.Windows.Forms.PictureBox();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
@@ -69,17 +73,35 @@
             this.activateControllerButton.Size = new System.Drawing.Size(114, 45);
             this.activateControllerButton.TabIndex = 0;
             this.activateControllerButton.Text = "Activate";
-            this.activateControllerButton.UseVisualStyleBackColor = true;
+            this.activateControllerButton.FlatStyle = FlatStyle.Flat;
+            this.activateControllerButton.BackColor = Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.activateControllerButton.ForeColor = Color.White;
+            this.activateControllerButton.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
+            this.activateControllerButton.FlatAppearance.BorderSize = 1;
+            this.activateControllerButton.FlatAppearance.BorderColor = Color.FromArgb(((int)(((byte)(67)))), ((int)(((byte)(67)))), ((int)(((byte)(70)))));
+            this.activateControllerButton.Cursor = Cursors.Hand;
             this.activateControllerButton.Click += new System.EventHandler(this.activateControllerButton_Click);
+            // 
+            // 
+            // gearDisplayPanel
+            // 
+            this.gearDisplayPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(48)))), ((int)(((byte)(48)))), ((int)(((byte)(50)))));
+            this.gearDisplayPanel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.gearDisplayPanel.Controls.Add(this.gearRightNow);
+            this.gearDisplayPanel.Location = new System.Drawing.Point(20, 620);
+            this.gearDisplayPanel.Name = "gearDisplayPanel";
+            this.gearDisplayPanel.Size = new System.Drawing.Size(100, 100);
+            this.gearDisplayPanel.TabIndex = 40;
             // 
             // gearRightNow
             // 
-            this.gearRightNow.AutoSize = true;
-            this.gearRightNow.Location = new System.Drawing.Point(23, 630);
+            this.gearRightNow.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.gearRightNow.Location = new System.Drawing.Point(0, 0);
             this.gearRightNow.Name = "gearRightNow";
-            this.gearRightNow.Size = new System.Drawing.Size(15, 13);
+            this.gearRightNow.Size = new System.Drawing.Size(78, 78);
             this.gearRightNow.TabIndex = 16;
             this.gearRightNow.Text = "N";
+            this.gearRightNow.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // resetImageButton
             // 
@@ -87,18 +109,30 @@
             this.resetImageButton.Name = "resetImageButton";
             this.resetImageButton.Size = new System.Drawing.Size(114, 45);
             this.resetImageButton.TabIndex = 18;
-            this.resetImageButton.Text = "Reset image";
-            this.resetImageButton.UseVisualStyleBackColor = true;
+            this.resetImageButton.Text = "Clear Pattern";
+            this.resetImageButton.FlatStyle = FlatStyle.Flat;
+            this.resetImageButton.BackColor = Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.resetImageButton.ForeColor = Color.White;
+            this.resetImageButton.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
+            this.resetImageButton.FlatAppearance.BorderSize = 1;
+            this.resetImageButton.FlatAppearance.BorderColor = Color.FromArgb(((int)(((byte)(67)))), ((int)(((byte)(67)))), ((int)(((byte)(70)))));
+            this.resetImageButton.Cursor = Cursors.Hand;
             this.resetImageButton.Click += new System.EventHandler(this.resetImageButton_Click);
             // 
             // saveButton
             // 
             this.saveButton.Location = new System.Drawing.Point(12, 281);
             this.saveButton.Name = "saveButton";
-            this.saveButton.Size = new System.Drawing.Size(110, 24);
+            this.saveButton.Size = new System.Drawing.Size(110, 32);
             this.saveButton.TabIndex = 19;
-            this.saveButton.Text = "Save layout";
-            this.saveButton.UseVisualStyleBackColor = true;
+            this.saveButton.Text = "Save Layout";
+            this.saveButton.FlatStyle = FlatStyle.Flat;
+            this.saveButton.BackColor = Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.saveButton.ForeColor = Color.White;
+            this.saveButton.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
+            this.saveButton.FlatAppearance.BorderSize = 1;
+            this.saveButton.FlatAppearance.BorderColor = Color.FromArgb(((int)(((byte)(67)))), ((int)(((byte)(67)))), ((int)(((byte)(70)))));
+            this.saveButton.Cursor = Cursors.Hand;
             this.saveButton.Click += new System.EventHandler(this.saveButton_Click);
             // 
             // label1
@@ -204,10 +238,12 @@
             this.xInputRadioButton.Checked = true;
             this.xInputRadioButton.Location = new System.Drawing.Point(842, 26);
             this.xInputRadioButton.Name = "xInputRadioButton";
-            this.xInputRadioButton.Size = new System.Drawing.Size(139, 17);
+            this.xInputRadioButton.Size = new System.Drawing.Size(180, 17);
             this.xInputRadioButton.TabIndex = 32;
             this.xInputRadioButton.TabStop = true;
             this.xInputRadioButton.Text = "X Input (Xbox Controller)";
+            this.xInputRadioButton.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
+            this.xInputRadioButton.ForeColor = Color.White;
             this.xInputRadioButton.UseVisualStyleBackColor = true;
             this.xInputRadioButton.Click += new System.EventHandler(this.xInputRadioButton_Clicked);
             // 
@@ -216,9 +252,11 @@
             this.directInputRadiobutton.AutoSize = true;
             this.directInputRadiobutton.Location = new System.Drawing.Point(842, 49);
             this.directInputRadiobutton.Name = "directInputRadiobutton";
-            this.directInputRadiobutton.Size = new System.Drawing.Size(132, 17);
+            this.directInputRadiobutton.Size = new System.Drawing.Size(180, 17);
             this.directInputRadiobutton.TabIndex = 33;
             this.directInputRadiobutton.Text = "Direct Input (Joysticks)";
+            this.directInputRadiobutton.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
+            this.directInputRadiobutton.ForeColor = Color.White;
             this.directInputRadiobutton.UseVisualStyleBackColor = true;
             this.directInputRadiobutton.Click += new System.EventHandler(this.directInputRadiobutton_Clicked);
             // 
@@ -239,25 +277,38 @@
             this.savedLayoutsListBox.Name = "savedLayoutsListBox";
             this.savedLayoutsListBox.Size = new System.Drawing.Size(114, 93);
             this.savedLayoutsListBox.TabIndex = 35;
+            this.savedLayoutsListBox.BackColor = Color.FromArgb(((int)(((byte)(48)))), ((int)(((byte)(48)))), ((int)(((byte)(50)))));
+            this.savedLayoutsListBox.ForeColor = Color.White;
+            this.savedLayoutsListBox.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
             this.savedLayoutsListBox.SelectedIndexChanged += new System.EventHandler(this.savedLayoutsListBox_SelectedIndexChanged);
             // 
             // loadButton
             // 
             this.loadButton.Location = new System.Drawing.Point(12, 214);
             this.loadButton.Name = "loadButton";
-            this.loadButton.Size = new System.Drawing.Size(110, 24);
+            this.loadButton.Size = new System.Drawing.Size(110, 32);
             this.loadButton.TabIndex = 36;
-            this.loadButton.Text = "Load layout";
-            this.loadButton.UseVisualStyleBackColor = true;
+            this.loadButton.Text = "Load Layout";
+            this.loadButton.FlatStyle = FlatStyle.Flat;
+            this.loadButton.BackColor = Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.loadButton.ForeColor = Color.White;
+            this.loadButton.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
+            this.loadButton.FlatAppearance.BorderSize = 1;
+            this.loadButton.FlatAppearance.BorderColor = Color.FromArgb(((int)(((byte)(67)))), ((int)(((byte)(67)))), ((int)(((byte)(70)))));
+            this.loadButton.Cursor = Cursors.Hand;
             this.loadButton.Click += new System.EventHandler(this.loadButton_Click);
             // 
             // layoutNameBox
             // 
             this.layoutNameBox.Location = new System.Drawing.Point(12, 255);
             this.layoutNameBox.Name = "layoutNameBox";
-            this.layoutNameBox.Size = new System.Drawing.Size(110, 20);
+            this.layoutNameBox.Size = new System.Drawing.Size(110, 25);
             this.layoutNameBox.TabIndex = 37;
             this.layoutNameBox.Text = "LayoutName";
+            this.layoutNameBox.BackColor = Color.FromArgb(((int)(((byte)(48)))), ((int)(((byte)(48)))), ((int)(((byte)(50)))));
+            this.layoutNameBox.ForeColor = Color.White;
+            this.layoutNameBox.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
+            this.layoutNameBox.BorderStyle = BorderStyle.FixedSingle;
             // 
             // pictureBox3
             // 
@@ -308,7 +359,7 @@
             // 
             // axisBox
             // 
-            this.axisBox.BackColor = System.Drawing.Color.White;
+            this.axisBox.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(55)))), ((int)(((byte)(55)))), ((int)(((byte)(58)))));
             this.axisBox.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
             this.axisBox.Location = new System.Drawing.Point(132, 12);
             this.axisBox.Name = "axisBox";
@@ -320,8 +371,10 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
+            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(42)))));
             this.ClientSize = new System.Drawing.Size(993, 727);
+            this.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
+            this.ForeColor = Color.White;
             this.Controls.Add(this.pictureBox3);
             this.Controls.Add(this.layoutNameBox);
             this.Controls.Add(this.loadButton);
@@ -343,7 +396,7 @@
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.saveButton);
             this.Controls.Add(this.resetImageButton);
-            this.Controls.Add(this.gearRightNow);
+            this.Controls.Add(this.gearDisplayPanel);
             this.Controls.Add(this.overlayBox);
             this.Controls.Add(this.axisBox);
             this.Controls.Add(this.activateControllerButton);
@@ -387,6 +440,7 @@
         private System.Windows.Forms.ListBox savedLayoutsListBox;
         private System.Windows.Forms.Button loadButton;
         private System.Windows.Forms.ColorDialog colorDialog1;
+        private System.Windows.Forms.Panel gearDisplayPanel;
         private System.Windows.Forms.TextBox layoutNameBox;
         private System.Windows.Forms.PictureBox pictureBox3;
     }

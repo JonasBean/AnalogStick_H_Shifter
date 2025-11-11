@@ -3,13 +3,78 @@
     "tasks": [  
         {  
             "label": "build",  
-            "command": "dotnet",  
+            "command": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\MSBuild\\Current\\Bin\\MSBuild.exe",  
             "type": "process",  
-            "args": [ "build" ],  
+            "args": [ 
+                "${workspaceFolder}\\AnalogStick_H_Shifter.sln",
+                "/p:Configuration=Debug",
+                "/p:Platform=Any CPU"
+            ],  
             "options": {  
                 "cwd": "${workspaceFolder}"  
             },  
-            "problemMatcher": "$tsc"  
-        }  
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile"  
+        },
+        {  
+            "label": "build-framework",  
+            "command": "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\MSBuild.exe",  
+            "type": "process",  
+            "args": [ 
+                "${workspaceFolder}\\AnalogStick_H_Shifter.sln",
+                "/p:Configuration=Debug",
+                "/p:Platform=Any CPU"
+            ],  
+            "options": {  
+                "cwd": "${workspaceFolder}"  
+            },  
+            "group": "build",
+            "problemMatcher": "$msCompile"  
+        },
+        {  
+            "label": "build-release",  
+            "command": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\MSBuild\\Current\\Bin\\MSBuild.exe",  
+            "type": "process",  
+            "args": [ 
+                "${workspaceFolder}\\AnalogStick_H_Shifter.sln",
+                "/p:Configuration=Release",
+                "/p:Platform=Any CPU"
+            ],  
+            "options": {  
+                "cwd": "${workspaceFolder}"  
+            },  
+            "group": "build",
+            "problemMatcher": "$msCompile"  
+        },
+        {  
+            "label": "run-app",  
+            "command": "${workspaceFolder}\\AnalogStick_H_Shifter\\bin\\Debug\\AnalogStick_H_Shifter.exe",  
+            "type": "shell",
+            "dependsOn": "build",
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            }
+        },
+        {  
+            "label": "clean",  
+            "command": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\MSBuild\\Current\\Bin\\MSBuild.exe",  
+            "type": "process",  
+            "args": [ 
+                "${workspaceFolder}\\AnalogStick_H_Shifter.sln",
+                "/t:Clean"
+            ],  
+            "options": {  
+                "cwd": "${workspaceFolder}"  
+            },  
+            "group": "build",
+            "problemMatcher": "$msCompile"  
+        }
     ]  
 }  
