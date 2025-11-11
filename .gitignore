@@ -368,3 +368,5 @@ unused-assets/
 
 # Ignore any files created by local packaging or test runs
 *.local
+analogstick-h-shifter-v1.1.0.0.zip
+create-release-zip.ps1
