@@ -3,24 +3,28 @@ AnalogStick_H_Shifter
 
 What this program does
 ------------------------------------------
-AnalogStick_H_Shifter is a small Windows Forms utility that lets you use a gamepad's analog stick as an "H‑shifter" for applications or games that accept keyboard gear inputs. The program reads the right analog stick (X/Y) from either an XInput-compatible controller (Xbox style) or a DirectInput joystick/gamepad, displays a visual axis, and maps stick positions into configurable rectangular "gear" regions. When the stick enters a region the app simulates keyboard scancodes (keys 1–6 for gears and 9 for reverse) using the Windows SendInput API so the target program receives the events as normal key presses.
+AnalogStick_H_Shifter is a small Windows utility that lets you use a gamepad's analog stick as an "H‑shifter" for games that accept keyboard gear inputs. It reads a stick from an XInput controller (Xbox style) or a DirectInput device (joysticks, wheels, gamepads), shows the live stick position and maps it into configurable rectangular "gear zones". When the stick enters a zone the app holds that gear's key using the Windows SendInput API (hardware scan codes), so the game receives normal key presses.
 
 Main features
 -------------
-- Support for XInput and DirectInput controllers (SharpDX used for device access).
-- Visual editor: draw and move rectangular gear zones on the axis image and save/load layouts to the `Layouts/` folder.
-- Live overlay showing the current stick position and the active gear (visual colours and large gear indicator).
-- Persisted shift counters (written to a small `shiftCount` file) and per‑gear counters shown in the UI.
-- Optionally compute and publish releases using the provided `build.ps1` and `deploy-release.ps1` helper scripts (local packaging and GitHub release support).
+- Modern dark UI with a resizable window and a live, scalable shift-pattern editor.
+- **1 to 12 forward gears + reverse** – change the gear count with the **− / +** buttons. Zones are arranged as a classic H-pattern (odd gears on top, even gears below; reverse bottom right for odd counts, top left for even counts).
+- Drag zones to move them, drag any corner to resize them, or nudge the selected zone with the arrow keys (Ctrl + arrows resizes, Shift = bigger steps).
+- **Free key binding per gear**: click a gear's key in the "Gears & keys" list and press the new key. Duplicate bindings are highlighted.
+- XInput: choose left or right stick; the first connected controller is picked up automatically (also when plugged in later).
+- DirectInput: choose device, axis pair (X/Y, Rx/Ry, Z/Rz) and optionally invert the Y axis.
+- Live gear indicator, stick trail, per-gear and total shift counters.
+- Save/load named layouts (`Layouts/*.json`). Layout files and shift counters from version 1.x are imported automatically.
+- All settings, the current layout and the window size are remembered in `settings.json` next to the exe.
 
 How to use (quickstart)
 ------------------------
-1. Build the project with Visual Studio or MSBuild (the project targets .NET Framework 4.7.2). See the build instructions above.
-2. Run `AnalogStick_H_Shifter.exe` from the `bin\Release` (or `bin\Debug`) folder.
-3. Choose controller type in the UI (XInput or DirectInput). If using DirectInput, select the device from the dropdown.
-4. Press "Activate" to start reading the stick. The right stick position will be shown on the white axis image.
-5. The default layout contains seven regions (gears 1–6 and R). You can move/resize these rectangles with the mouse or create and save new layouts to `Layouts/`.
-6. When the stick moves into a region the app sends the corresponding keyboard scancode (1..6 or 9). Use this to control the target application as if you pressed those keys on your keyboard.
+1. Build the project with Visual Studio or MSBuild (.NET Framework 4.7.2, see below) or download a release.
+2. Run `AnalogStick_H_Shifter.exe`.
+3. Choose the input (XInput or DirectInput) in the "Controller" card. The status badge at the top shows whether a controller is connected; the stick position appears on the pattern.
+4. Pick the number of forward gears with − / +, adjust the zones with the mouse and rebind keys if needed (defaults: gears 1–8 → keys 1–8, gear 9 → 0, reverse → 9).
+5. Press **Activate** to start sending keys. Press it again to pause the output.
+6. Save the layout under a name with "Save as…" to reuse it later.
 
 Safety and notes
 ----------------

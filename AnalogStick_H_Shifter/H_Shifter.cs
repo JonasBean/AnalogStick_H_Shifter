@@ -1,866 +1,624 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
-using static AnalogStick_H_Shifter.ControllerHandling;
 
 namespace AnalogStick_H_Shifter
 {
     public partial class H_Shifter : Form
     {
-        XInputController xinput;
-        DirectInputController dinput;
+        static readonly string Root = Path.GetDirectoryName(Application.ExecutablePath);
+        static readonly string LayoutFolder = Path.Combine(Root, "Layouts");
+        static readonly string SettingsPath = Path.Combine(Root, "settings.json");
+        static readonly string LegacyCounterPath = Path.Combine(Root, "shiftCount");
 
-        public bool useXInput = true;
+        const string YouTubeUrl = "https://www.youtube.com/c/BeanJ?sub_confirmation=1";
 
-        public string root = Path.GetDirectoryName(Application.ExecutablePath);
-        public string layoutFolder;
-        public string imagesFolder;
+        readonly AppSettings settings;
+        readonly ShifterEngine engine = new ShifterEngine();
+        ShifterLayout layout;
+        bool settingsDirty;
+        bool loading = true;
 
-        public Point rightThumb = new Point(0, 0);
-        public Point mouseCoords = new Point(0, 0);
+        // header
+        Label titleLabel, subtitleLabel;
+        StatusPill statusPill;
+        ModernButton activateButton;
 
-        public Bitmap axisImage;
-        public Bitmap overlayImage;
+        // left column
+        SegmentedControl inputModeSwitch, stickSideSwitch, invertYSwitch;
+        DarkComboBox deviceCombo, axesCombo, layoutCombo;
+        Control xinputSection, dinputSection;
+        Stepper gearStepper;
 
-        static readonly int axisSize = 680;
-        static readonly int imageSize = axisSize + 20;
-        static readonly int gearsCount = 7;
-        int previousGear = 0;
-        int previousGearInBackground = -1;
+        // center / right
+        ShifterCanvas canvas;
+        GearIndicator indicator;
+        GearListView gearList;
+        Label totalShiftsLabel;
 
-        int currentlyGrabbedRectangle = -99;
-        PointF relativeGrabPosition;
+        readonly Timer uiTimer = new Timer { Interval = 16 };
+        readonly Timer saveTimer = new Timer { Interval = 2000 };
 
-        bool paintItOnce = true;
-        bool update = false;
-        bool refreshOverlay = false;
-        bool grabber;
-
-        private BackgroundWorker bGWorker = null;
-        private BackgroundWorker paintingbGWorker = null;
-
-        readonly Brush[] rectColors = new Brush[] { 
-            new SolidBrush(Color.FromArgb(255, 46, 204, 113)), // Green (Gear 1)
-            new SolidBrush(Color.FromArgb(255, 230, 126, 34)), // Orange (Gear 2)
-            new SolidBrush(Color.FromArgb(255, 149, 165, 166)), // Gray (Gear 3)
-            new SolidBrush(Color.FromArgb(255, 52, 152, 219)), // Light Blue (Gear 4)
-            new SolidBrush(Color.FromArgb(255, 155, 89, 182)), // Purple (Gear 5)
-            new SolidBrush(Color.FromArgb(255, 241, 196, 15)), // Yellow (Gear 6)
-            new SolidBrush(Color.FromArgb(255, 231, 76, 60))   // Red (Reverse gear)
-        };
-        readonly string[] rectangleStrings = new string[] { "1", "2", "3", "4", "5", "6", "R", };
-
-        List<GearRectangle> gearRectangles = new List<GearRectangle>();
-        readonly ControllerHandling controllerHandling = new ControllerHandling();
-
-        int[] shiftCounter = new int[7];
+        sealed class DeviceItem
+        {
+            public Guid Guid;
+            public string Name;
+            public override string ToString() => Name;
+        }
 
         public H_Shifter()
         {
-            for (int i = 0; i < gearsCount; i++)
-            {
-                GearRectangle gear = new GearRectangle();
-                gear.Gear = rectangleStrings[i];
+            Theme.InitDpi(this);
+            settings = AppSettings.Load(SettingsPath, LegacyCounterPath);
 
-                gearRectangles.Add(gear);
+            BuildUi();
+            LoadInitialLayout();
+            ApplySettingsToUi();
+            ApplyInputSource();
+
+            uiTimer.Tick += (s, e) => UpdateLiveState();
+            saveTimer.Tick += (s, e) => SaveSettingsIfDirty();
+            uiTimer.Start();
+            saveTimer.Start();
+            loading = false;
+        }
+
+        // ================================================================== UI construction
+
+        void BuildUi()
+        {
+            SuspendLayout();
+
+            AutoScaleMode = AutoScaleMode.None;
+            Text = "AnalogStick H-Shifter";
+            BackColor = Theme.Background;
+            ForeColor = Theme.Text;
+            Font = Theme.Body;
+            DoubleBuffered = true;
+            MinimumSize = new Size(Theme.S(1080), Theme.S(700));
+            Size = new Size(Theme.S(1320), Theme.S(860));
+            StartPosition = FormStartPosition.CenterScreen;
+            try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch (ArgumentException) { }
+
+            var grid = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount = 2,
+                Padding = Theme.S(16, 12, 16, 16),
+                BackColor = Theme.Background,
+            };
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Theme.S(280)));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, Theme.S(330)));
+            grid.RowStyles.Add(new RowStyle(SizeType.Absolute, Theme.S(64)));
+            grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+            var header = BuildHeader();
+            grid.Controls.Add(header, 0, 0);
+            grid.SetColumnSpan(header, 3);
+
+            var left = BuildLeftColumn();
+            left.Margin = new Padding(0, 0, Theme.S(12), 0);
+            grid.Controls.Add(left, 0, 1);
+
+            canvas = new ShifterCanvas { Dock = DockStyle.Fill, Margin = new Padding(0) };
+            canvas.LayoutEdited += (s, e) => MarkDirty();
+            canvas.SelectedChanged += (s, gear) => gearList.Selected = gear;
+            grid.Controls.Add(canvas, 1, 1);
+
+            var right = BuildRightColumn();
+            right.Margin = new Padding(Theme.S(12), 0, 0, 0);
+            grid.Controls.Add(right, 2, 1);
+
+            Controls.Add(grid);
+            ResumeLayout(true);
+        }
+
+        Control BuildHeader()
+        {
+            var header = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Background, Margin = new Padding(0, 0, 0, Theme.S(8)) };
+
+            titleLabel = new Label
+            {
+                Text = "H-Shifter",
+                Font = new Font("Segoe UI Semibold", 17f),
+                ForeColor = Theme.Text,
+                AutoSize = true,
+                Location = new Point(0, Theme.S(2)),
+            };
+            subtitleLabel = new Label
+            {
+                Text = "Turn an analog stick into an H-pattern gearbox",
+                Font = Theme.Small,
+                ForeColor = Theme.TextMuted,
+                AutoSize = true,
+                Location = new Point(Theme.S(2), Theme.S(36)),
+            };
+
+            statusPill = new StatusPill();
+            statusPill.SetStatus("Searching for controller…", Theme.TextDim);
+
+            activateButton = new ModernButton
+            {
+                Variant = ButtonVariant.Primary,
+                Text = "Activate",
+                Icon = Theme.Icons.Play,
+                Size = new Size(Theme.S(168), Theme.S(42)),
+                Font = Theme.BodyBold,
+            };
+            activateButton.Click += (s, e) => SetOutputEnabled(!engine.OutputEnabled);
+
+            header.Controls.AddRange(new Control[] { titleLabel, subtitleLabel, statusPill, activateButton });
+            header.Resize += (s, e) => LayoutHeader(header);
+            return header;
+        }
+
+        void LayoutHeader(Control header)
+        {
+            int y = (header.Height - activateButton.Height) / 2;
+            activateButton.Location = new Point(header.Width - activateButton.Width, y);
+            statusPill.Location = new Point(activateButton.Left - Theme.S(14) - statusPill.Width, (header.Height - statusPill.Height) / 2);
+        }
+
+        Control BuildLeftColumn()
+        {
+            var column = new ScrollStack { Dock = DockStyle.Fill };
+
+            // ---- Controller
+            inputModeSwitch = new SegmentedControl { Items = new[] { "XInput", "DirectInput" } };
+            inputModeSwitch.SelectedIndexChanged += (s, e) =>
+            {
+                settings.InputMode = (InputMode)inputModeSwitch.SelectedIndex;
+                UpdateInputSections();
+                ApplyInputSource();
+            };
+
+            stickSideSwitch = new SegmentedControl { Items = new[] { "Left stick", "Right stick" }, Height = Theme.S(32) };
+            stickSideSwitch.SelectedIndexChanged += (s, e) =>
+            {
+                settings.XInputStick = stickSideSwitch.SelectedIndex == 0 ? StickSide.Left : StickSide.Right;
+                ApplyInputSource();
+            };
+
+            var xinputCard = new StackCard { ShowFrame = false, Padding = new Padding(0), Spacing = Theme.S(6) };
+            xinputCard.AddRange(new ThemedLabel("Stick (Xbox-compatible controller)"), stickSideSwitch);
+            xinputSection = xinputCard;
+
+            deviceCombo = new DarkComboBox { Tag = HRow.Fill, Placeholder = "No device found" };
+            deviceCombo.SelectedIndexChanged += (s, e) =>
+            {
+                if (deviceCombo.SelectedItem is DeviceItem item) settings.DirectInputDevice = item.Guid.ToString();
+                ApplyInputSource();
+            };
+            var refreshButton = new ModernButton { Icon = Theme.Icons.Refresh, Width = Theme.S(34) };
+            refreshButton.Click += (s, e) => RefreshDevices();
+            new ToolTip(components).SetToolTip(refreshButton, "Search for devices again");
+
+            axesCombo = new DarkComboBox { Tag = HRow.Fill };
+            axesCombo.Items.AddRange(new object[] { "X / Y", "Rx / Ry", "Z / Rz" });
+            axesCombo.SelectedIndexChanged += (s, e) =>
+            {
+                settings.DirectInputAxes = (AxisPair)Math.Max(0, axesCombo.SelectedIndex);
+                ApplyInputSource();
+            };
+
+            invertYSwitch = new SegmentedControl { Items = new[] { "Normal", "Inverted" }, Height = Theme.S(32), Width = Theme.S(140) };
+            invertYSwitch.SelectedIndexChanged += (s, e) =>
+            {
+                settings.InvertY = invertYSwitch.SelectedIndex == 1;
+                ApplyInputSource();
+            };
+
+            var dinputCard = new StackCard { ShowFrame = false, Padding = new Padding(0), Spacing = Theme.S(6) };
+            dinputCard.AddRange(
+                new ThemedLabel("Device"),
+                new HRow(Theme.S(34), deviceCombo, refreshButton),
+                new ThemedLabel("Axes"),
+                new HRow(Theme.S(34), axesCombo),
+                new ThemedLabel("Y axis"),
+                invertYSwitch);
+            dinputSection = dinputCard;
+
+            var controllerCard = new StackCard { Caption = "Controller" };
+            controllerCard.AddRange(inputModeSwitch, xinputSection, dinputSection);
+
+            // ---- Shift pattern
+            gearStepper = new Stepper
+            {
+                Minimum = ShifterLayout.MinForwardGears,
+                Maximum = ShifterLayout.MaxForwardGears,
+                Suffix = " + R",
+                Height = Theme.S(44),
+            };
+            gearStepper.ValueChanged += (s, e) => SetLayout(layout.WithForwardGears(gearStepper.Value));
+
+            var arrangeButton = new ModernButton { Text = "Auto-arrange", Icon = Theme.Icons.Grid, Tag = HRow.Fill };
+            arrangeButton.Click += (s, e) => SetLayout(layout.WithForwardGears(layout.ForwardCount));
+            new ToolTip(components).SetToolTip(arrangeButton, "Re-arrange all zones into a standard H-pattern (key bindings are kept)");
+
+            var clearTrailButton = new ModernButton { Text = "Clear trail", Icon = Theme.Icons.Erase, Tag = HRow.Fill };
+            clearTrailButton.Click += (s, e) => canvas.ClearTrail();
+
+            var patternCard = new StackCard { Caption = "Shift pattern" };
+            patternCard.AddRange(
+                new ThemedLabel("Forward gears"),
+                gearStepper,
+                new HRow(Theme.S(34), arrangeButton, clearTrailButton));
+
+            // ---- Saved layouts
+            layoutCombo = new DarkComboBox { Tag = HRow.Fill, Placeholder = "No saved layouts" };
+            layoutCombo.SelectionChangeCommitted += (s, e) => LoadSelectedLayout();
+
+            var saveButton = new ModernButton { Text = "Save", Icon = Theme.Icons.Save, Tag = HRow.Fill, Variant = ButtonVariant.Primary };
+            saveButton.Click += (s, e) => SaveCurrentLayout(askForName: false);
+            new ToolTip(components).SetToolTip(saveButton, "Save changes to the selected layout");
+            var saveAsButton = new ModernButton { Text = "Save as…", Tag = HRow.Fill };
+            saveAsButton.Click += (s, e) => SaveCurrentLayout(askForName: true);
+            var deleteButton = new ModernButton { Icon = Theme.Icons.Delete, Width = Theme.S(38), Variant = ButtonVariant.Danger };
+            deleteButton.Click += (s, e) => DeleteSelectedLayout();
+            new ToolTip(components).SetToolTip(deleteButton, "Delete the selected layout");
+
+            var layoutsCard = new StackCard { Caption = "Saved layouts" };
+            layoutsCard.AddRange(
+                new HRow(Theme.S(34), layoutCombo),
+                new HRow(Theme.S(34), saveButton, saveAsButton, deleteButton));
+
+            // ---- footer
+            var aboutButton = new ModernButton { Text = "About", Icon = Theme.Icons.Info, Variant = ButtonVariant.Ghost, Tag = HRow.Fill };
+            aboutButton.Click += (s, e) => { using (var about = new AboutForm()) about.ShowDialog(this); };
+            var youtubeButton = new ModernButton { Text = "YouTube", Icon = Theme.Icons.Play, Variant = ButtonVariant.Ghost, Tag = HRow.Fill };
+            youtubeButton.Click += (s, e) => OpenUrl(YouTubeUrl);
+
+            var signature = new PictureBox
+            {
+                Image = Theme.Fit(Theme.Tint(Properties.Resources.LogoNeu, Theme.TextMuted), new Size(Theme.S(150), Theme.S(44))),
+                SizeMode = PictureBoxSizeMode.CenterImage,
+                Height = Theme.S(52),
+                BackColor = Theme.Surface,
+                Cursor = Cursors.Hand,
+            };
+            signature.Click += (s, e) => OpenUrl(YouTubeUrl);
+            new ToolTip(components).SetToolTip(signature, "Made by Bean");
+
+            var footerCard = new StackCard { Spacing = Theme.S(4) };
+            footerCard.AddRange(signature, new HRow(Theme.S(34), aboutButton, youtubeButton));
+
+            column.AddRange(controllerCard, patternCard, layoutsCard, footerCard);
+            return column;
+        }
+
+        Control BuildRightColumn()
+        {
+            var column = new ScrollStack { Dock = DockStyle.Fill };
+
+            indicator = new GearIndicator();
+            var indicatorCard = new StackCard();
+            indicatorCard.AddRange(indicator);
+
+            totalShiftsLabel = new Label
+            {
+                Font = Theme.Stat,
+                ForeColor = Theme.Text,
+                AutoSize = false,
+                Height = Theme.S(40),
+                Tag = HRow.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                BackColor = Theme.Surface,
+            };
+            var resetButton = new ModernButton { Text = "Reset", Icon = Theme.Icons.Reset, Variant = ButtonVariant.Ghost, Width = Theme.S(92) };
+            resetButton.Click += (s, e) => ResetStatistics();
+
+            var statsCard = new StackCard { Caption = "Total shifts" };
+            statsCard.AddRange(new HRow(Theme.S(40), totalShiftsLabel, resetButton));
+
+            gearList = new GearListView();
+            gearList.SelectedGearChanged += (s, gear) => canvas.Selected = gear;
+            gearList.KeyAssigned += (s, gear) => { canvas.Invalidate(); MarkDirty(); };
+
+            var gearsCard = new StackCard { Caption = "Gears & keys" };
+            gearsCard.AddRange(new ThemedLabel("Click a key to rebind it · Esc cancels"), gearList);
+
+            column.AddRange(indicatorCard, statsCard, gearsCard);
+            return column;
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            Theme.UseDarkTitleBar(this);
+        }
+
+        // ================================================================== settings <-> UI
+
+        void ApplySettingsToUi()
+        {
+            if (settings.WindowWidth > 0 && settings.WindowHeight > 0)
+            {
+                var area = Screen.FromControl(this).WorkingArea;
+                Size = new Size(Math.Min(settings.WindowWidth, area.Width), Math.Min(settings.WindowHeight, area.Height));
             }
+            if (settings.WindowMaximized) WindowState = FormWindowState.Maximized;
 
-            InitializeComponent();
+            inputModeSwitch.SelectedIndex = (int)settings.InputMode;
+            stickSideSwitch.SelectedIndex = settings.XInputStick == StickSide.Left ? 0 : 1;
+            axesCombo.SelectedIndex = (int)settings.DirectInputAxes;
+            invertYSwitch.SelectedIndex = settings.InvertY ? 1 : 0;
+            RefreshDevices();
+            UpdateInputSections();
+            UpdateStatistics();
+        }
 
-            overlayBox.MouseDown += overlayBox_MouseDown;
-            overlayBox.MouseUp += overlayBox_MouseUp;
+        void UpdateInputSections()
+        {
+            bool xinput = settings.InputMode == InputMode.XInput;
+            xinputSection.Visible = xinput;
+            dinputSection.Visible = !xinput;
+            xinputSection.Parent?.PerformLayout();
+        }
 
-            layoutFolder = Path.Combine(root, "Layouts");
-            imagesFolder = Path.Combine(root, "Images");
+        void RefreshDevices()
+        {
+            var devices = DirectInputStickSource.GetDevices();
+            deviceCombo.BeginUpdate();
+            deviceCombo.Items.Clear();
+            foreach (var d in devices)
+                deviceCombo.Items.Add(new DeviceItem { Guid = d.InstanceGuid, Name = d.InstanceName.Trim() });
+            deviceCombo.EndUpdate();
 
-            axisImage = new Bitmap(imageSize, imageSize);
-            overlayImage = new Bitmap(imageSize, imageSize);
+            var wanted = deviceCombo.Items.Cast<DeviceItem>().FirstOrDefault(d => d.Guid.ToString() == settings.DirectInputDevice);
+            if (wanted != null) deviceCombo.SelectedItem = wanted;
+            else if (deviceCombo.Items.Count > 0) deviceCombo.SelectedIndex = 0;
+            else ApplyInputSource();
+        }
 
-            overlayBox.BackColor = Color.Transparent;
-            overlayBox.Parent = axisBox;
-            overlayBox.Location = new Point(0, 0);
-
-            PopulateListBox();
-
-            if (savedLayoutsListBox.Items.Count != 0)
+        void ApplyInputSource()
+        {
+            IStickSource source;
+            if (settings.InputMode == InputMode.XInput)
             {
-                savedLayoutsListBox.SelectedIndex = 0;
-                gearRectangles = ReadGearListFromFile(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
+                source = new XInputStickSource(settings.XInputStick);
             }
             else
             {
-                // Standard H-shift layout: 1-3-5 top, 2-4-6 bottom
-                gearRectangles = new List<GearRectangle> {
-                    new GearRectangle(100, 100, 30, 30, rectangleStrings[0], new Rectangle(180, 200, 120, 120)),  // Gear 1: Top Left
-                    new GearRectangle(200, 100, 300, 30, rectangleStrings[1], new Rectangle(180, 500, 120, 120)), // Gear 2: Bottom Left  
-                    new GearRectangle(120, 120, 600, 30, rectangleStrings[2], new Rectangle(330, 200, 120, 120)), // Gear 3: Top Center
-                    new GearRectangle(120, 120, 30, 300, rectangleStrings[3], new Rectangle(330, 500, 120, 120)), // Gear 4: Bottom Center
-                    new GearRectangle(120, 120, 300, 300, rectangleStrings[4], new Rectangle(480, 200, 120, 120)), // Gear 5: Top Right
-                    new GearRectangle(120, 120, 600,300, rectangleStrings[5], new Rectangle(480, 500, 120, 120)),  // Gear 6: Bottom Right
-                    new GearRectangle(120, 120, 300, 600, rectangleStrings[6], new Rectangle(20, 350, 120, 120))   // Reverse: Left Center
-                };
+                var device = deviceCombo.SelectedItem as DeviceItem;
+                source = new DirectInputStickSource(device?.Guid ?? Guid.Empty, settings.DirectInputAxes, settings.InvertY);
             }
-
-            PaintGears();
-
-            gearRightNow.Font = new Font("Microsoft Sans Serif", 55, FontStyle.Regular, GraphicsUnit.Point, ((byte)(0)));
-
-            try
-            {
-                shiftCounter = ReadFromBinaryFile<int[]>(Path.GetDirectoryName(Application.ExecutablePath) + "//shiftCount");
-
-                frstGearLabel.Text = shiftCounter[0].ToString();
-                scndGearLabel.Text = shiftCounter[1].ToString();
-                thrdGearLabel.Text = shiftCounter[2].ToString();
-                frthGearLabel.Text = shiftCounter[3].ToString();
-                ffthGearLabel.Text = shiftCounter[4].ToString();
-                sxthGearLabel.Text = shiftCounter[5].ToString();
-                rvrsGearLabel.Text = shiftCounter[6].ToString();
-
-                ttlshift.Text = getTotalShifts().ToString();
-
-                Console.WriteLine("Shiftcount-File loaded successfully");
-            }
-            catch (Exception)
-            {
-                Console.WriteLine("Shiftcount-File not found");
-            }
-
-            refreshOverlay = true;
-            overlayBox_Click(null, null);
-            overlayBox.Image = overlayImage;
-
-            xinput = new XInputController();
-            dinput = new DirectInputController(joyStickListBox, false);
-
-            xinput.Update();
-            dinput.Update();
+            engine.SetSource(source);
+            MarkDirty();
         }
 
-        private void PopulateListBox()
+        // ================================================================== layouts
+
+        void LoadInitialLayout()
         {
-            savedLayoutsListBox.Items.Clear();
-            DirectoryInfo dinfo = new DirectoryInfo(path: layoutFolder);
+            ShifterLayout initial = settings.Layout;
+            var saved = ShifterLayout.ListSaved(LayoutFolder);
 
-            if (!dinfo.Exists)
+            if (initial == null || initial.Gears == null || initial.Gears.Count == 0)
             {
-                dinfo.Create();
-            }
-
-            FileInfo[] Files = dinfo.GetFiles("*.*");
-
-            foreach (FileInfo file in Files)
-            {
-                savedLayoutsListBox.Items.Add(file.Name);
-            }
-
-            if (savedLayoutsListBox.Items.Count > 0)
-            {
-                savedLayoutsListBox.SelectedIndex = 0;
-            }
-        }
-
-        private void TextBox1_TextChanged(object sender, EventArgs e)
-        {
-            refreshOverlay = true;
-            overlayBox_Click(null, null);
-        }
-
-        private void overlayBox_MouseDown(object sender, EventArgs e)
-        {
-            overlayBox.MouseMove += overlayBox_MouseMoved;
-
-            MouseEventArgs me = (MouseEventArgs)e;
-            mouseCoords = new Point(me.Location.X, me.Location.Y);
-
-            CheckForGrabHandle(mouseCoords);
-        }
-
-        private void overlayBox_MouseUp(object sender, EventArgs e)
-        {
-            overlayBox.MouseMove -= overlayBox_MouseMoved;
-
-            //if (overlayImage != null)
-            //    overlayImage.Dispose();
-
-            currentlyGrabbedRectangle = -99;
-
-            if (paintingbGWorker != null)
-            {
-                System.Threading.Thread.Sleep(60);
-                paintingbGWorker.CancelAsync();
-            }
-        }
-
-        private void overlayBox_MouseMoved(object sender, EventArgs e)
-        {
-            MouseEventArgs me = (MouseEventArgs)e;
-
-            if (currentlyGrabbedRectangle != -99)
-            {
-                if (grabber)
+                initial = null;
+                string name = settings.LayoutName != null && saved.ContainsKey(settings.LayoutName) ? settings.LayoutName : saved.Keys.FirstOrDefault();
+                if (name != null)
                 {
-                    if (me.Location.X >= 0 && me.Location.X <= 535)
-                    {
-                        gearRectangles[currentlyGrabbedRectangle].XPosition = me.Location.X + (int)relativeGrabPosition.X;
-                    }
-
-                    if (me.Location.Y >= 0 && me.Location.Y <= 535)
-                    {
-                        gearRectangles[currentlyGrabbedRectangle].YPosition = me.Location.Y + (int)relativeGrabPosition.Y;
-                    }
-                }
-                else
-                {
-                    if (me.Location.X >= 0 && me.Location.X <= 680 &&
-                        me.Location.X - gearRectangles[currentlyGrabbedRectangle].XPosition > 100)
-                    {
-                        gearRectangles[currentlyGrabbedRectangle].Width = me.Location.X - gearRectangles[currentlyGrabbedRectangle].XPosition + (int)relativeGrabPosition.X;
-                    }
-
-                    if (me.Location.Y >= 0 && me.Location.Y <= 690 &&
-                        me.Location.Y - gearRectangles[currentlyGrabbedRectangle].YPosition > 100)
-                    {
-                        gearRectangles[currentlyGrabbedRectangle].Height = me.Location.Y - gearRectangles[currentlyGrabbedRectangle].YPosition + (int)relativeGrabPosition.Y;
-                    }
-                }
-            }
-        }
-
-        private void CheckForGrabHandle(Point mousePoint)
-        {
-            for (int i = 0; i < gearRectangles.Count; i++)
-            {
-                if (PointIsInside(gearRectangles[i].Rect, mousePoint, true))
-                {
-                    grabber = true;
-                    currentlyGrabbedRectangle = i;
-
-                    relativeGrabPosition = new PointF(
-                        gearRectangles[currentlyGrabbedRectangle].XPosition - mouseCoords.X,
-                        gearRectangles[currentlyGrabbedRectangle].YPosition - mouseCoords.Y
-                    );
-
-                    if (paintingbGWorker == null || !paintingbGWorker.IsBusy)
-                    {
-                        paintingbGWorker = new BackgroundWorker();
-                        paintingbGWorker.DoWork += new DoWorkEventHandler(paintingbGWorker_DoWork);
-                        paintingbGWorker.WorkerReportsProgress = true;
-                        paintingbGWorker.WorkerSupportsCancellation = true;
-                        paintingbGWorker.RunWorkerAsync();
-                    }
-                }
-
-                if (PointIsInside(gearRectangles[i].Rect, mousePoint, false))
-                {
-                    grabber = false;
-                    currentlyGrabbedRectangle = i;
-
-                    relativeGrabPosition = new PointF(
-                        gearRectangles[currentlyGrabbedRectangle].XPosition + gearRectangles[currentlyGrabbedRectangle].Width - mouseCoords.X,
-                        gearRectangles[currentlyGrabbedRectangle].YPosition + gearRectangles[currentlyGrabbedRectangle].Height - mouseCoords.Y
-                    );
-
-                    if (paintingbGWorker == null || !paintingbGWorker.IsBusy)
-                    {
-                        paintingbGWorker = new BackgroundWorker();
-                        paintingbGWorker.DoWork += new DoWorkEventHandler(paintingbGWorker_DoWork);
-                        paintingbGWorker.WorkerReportsProgress = true;
-                        paintingbGWorker.WorkerSupportsCancellation = true;
-                        paintingbGWorker.RunWorkerAsync();
-                    }
-                }
-            }
-        }
-
-        private void overlayBox_Click(object sender, EventArgs e)
-        {
-            if (!refreshOverlay)
-            {
-                MouseEventArgs me = (MouseEventArgs)e;
-                mouseCoords = new Point(me.Location.X, me.Location.Y);
-
-                switch (previousGear)
-                {
-                    case 1:
-                        gearRectangles[0].XPosition = me.Location.X - (gearRectangles[0].Width / 2);
-                        gearRectangles[0].YPosition = me.Location.Y - (gearRectangles[0].Height / 2);
-                        break;
-                    case 2:
-                        gearRectangles[1].XPosition = me.Location.X - (gearRectangles[1].Width / 2);
-                        gearRectangles[1].YPosition = me.Location.Y - (gearRectangles[1].Height / 2);
-                        break;
-                    case 3:
-                        gearRectangles[2].XPosition = me.Location.X - (gearRectangles[2].Width / 2);
-                        gearRectangles[2].YPosition = me.Location.Y - (gearRectangles[2].Height / 2);
-                        break;
-                    case 4:
-                        gearRectangles[3].XPosition = me.Location.X - (gearRectangles[3].Width / 2);
-                        gearRectangles[3].YPosition = me.Location.Y - (gearRectangles[3].Height / 2);
-                        break;
-                    case 5:
-                        gearRectangles[4].XPosition = me.Location.X - (gearRectangles[4].Width / 2);
-                        gearRectangles[4].YPosition = me.Location.Y - (gearRectangles[4].Height / 2);
-                        break;
-                    case 6:
-                        gearRectangles[5].XPosition = me.Location.X - (gearRectangles[5].Width / 2);
-                        gearRectangles[5].YPosition = me.Location.Y - (gearRectangles[5].Height / 2);
-                        break;
-                    case 9:
-                        gearRectangles[6].XPosition = me.Location.X - (gearRectangles[6].Width / 2);
-                        gearRectangles[6].YPosition = me.Location.Y - (gearRectangles[6].Height / 2);
-                        break;
-                    default: break;
+                    try { initial = ShifterLayout.Load(saved[name]); settings.LayoutName = name; }
+                    catch (Exception ex) { Console.WriteLine("Could not load layout: " + ex.Message); }
                 }
             }
             else
             {
-                refreshOverlay = false;
+                initial.Normalize();
             }
+
+            SetLayout(initial ?? ShifterLayout.CreateDefault(6));
+            RefreshLayoutList(settings.LayoutName);
         }
 
-        private void resetImageButton_Click(object sender, EventArgs e)
+        void SetLayout(ShifterLayout newLayout)
         {
-            // Set the flag for the next paint operation
-            paintItOnce = true;
-            
-            // Immediately perform a reset of the image, even when not active
-            ResetAxisImage();
+            layout = newLayout;
+            canvas.ShiftLayout = layout;
+            gearList.SetGears(layout.Gears, g => settings.GetCount(g.Name));
+            gearList.Selected = canvas.Selected;
+            gearStepper.SetSilently(layout.ForwardCount);
+            engine.SetZones(layout.Gears.ToArray());
+            gearList.Parent?.PerformLayout();
+            MarkDirty();
         }
 
-        private void ResetAxisImage()
+        void RefreshLayoutList(string select)
         {
+            var saved = ShifterLayout.ListSaved(LayoutFolder);
+            layoutCombo.BeginUpdate();
+            layoutCombo.Items.Clear();
+            layoutCombo.Items.AddRange(saved.Keys.Cast<object>().ToArray());
+            layoutCombo.EndUpdate();
+            layoutCombo.SelectedItem = select != null && saved.ContainsKey(select) ? select : null;
+        }
+
+        void LoadSelectedLayout()
+        {
+            if (!(layoutCombo.SelectedItem is string name)) return;
+            if (!ShifterLayout.ListSaved(LayoutFolder).TryGetValue(name, out string path)) return;
+
             try
             {
-                if (axisImage != null)
-                {
-                    using (Graphics graph = Graphics.FromImage(axisImage))
-                    {
-                        // Redraw the background (Reset)
-                        graph.FillRectangle(new SolidBrush(Color.FromArgb(55, 55, 58)), new Rectangle(0, 0, imageSize, imageSize));
-                    }
-                    
-                    // Update the display immediately
-                    axisBox.Image = axisImage;
-                    axisBox.Invalidate();
-                    axisBox.Refresh();
-                }
+                SetLayout(ShifterLayout.Load(path));
+                settings.LayoutName = name;
             }
             catch (Exception ex)
             {
-                // Error handling in case the image is not available
-                Console.WriteLine("Error resetting axis image: " + ex.Message);
+                ShowError("The layout could not be loaded.\n\n" + ex.Message);
             }
         }
 
-        private void activateControllerButton_Click(object sender, EventArgs e)
+        void SaveCurrentLayout(bool askForName)
         {
-            update = !update;
-
-            if (update)
+            string name = layoutCombo.SelectedItem as string;
+            if (askForName || name == null)
             {
-                if (bGWorker == null)
-                {
-                    bGWorker = new BackgroundWorker();
-                    bGWorker.DoWork += new DoWorkEventHandler(bGWorker_DoWork);
-                    bGWorker.ProgressChanged += new ProgressChangedEventHandler(bGWorker_ProgressChanged);
-                }
+                name = InputDialog.Show(this, "Save layout", "Name of the layout", name ?? "My layout", ValidateLayoutName);
+                if (name == null) return;
 
-                bGWorker.WorkerReportsProgress = true;
-                bGWorker.WorkerSupportsCancellation = true;
-                bGWorker.RunWorkerAsync();
-
-                // Green background for active state
-                activateControllerButton.BackColor = Color.FromArgb(255, 46, 204, 113); // Green
-                activateControllerButton.ForeColor = Color.Black; // Black text for better contrast
-                activateControllerButton.Text = "Active";
+                string target = Path.Combine(LayoutFolder, name + ShifterLayout.FileExtension);
+                if (File.Exists(target) &&
+                    MessageBox.Show(this, "A layout called \"" + name + "\" already exists. Overwrite it?", "Save layout",
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                    return;
             }
-            else
+
+            try
             {
-                bGWorker.CancelAsync();
-                // Back to original color for inactive state
-                activateControllerButton.BackColor = Color.FromArgb(255, 45, 45, 48); // Dark gray
-                activateControllerButton.ForeColor = Color.White; // White text on dark background
-                activateControllerButton.Text = "Activate";
+                layout.Save(Path.Combine(LayoutFolder, name + ShifterLayout.FileExtension));
+                settings.LayoutName = name;
+                RefreshLayoutList(name);
+                MarkDirty();
+            }
+            catch (Exception ex)
+            {
+                ShowError("The layout could not be saved.\n\n" + ex.Message);
             }
         }
 
-        void bGWorker_DoWork(object sender, DoWorkEventArgs e)
+        static string ValidateLayoutName(string name)
         {
-            do
-            {
-                if (bGWorker.CancellationPending)
-                    break;
-
-                double relStickX;
-                double relStickY;
-
-                if (useXInput)
-                {
-                    xinput.Update();
-                    relStickX = axisSize * ((double)xinput.gamepad.RightThumbX + 32768) / 65536;
-                    relStickY = axisSize * ((double)xinput.gamepad.RightThumbY + 32768) / 65536;
-                }
-                else
-                {
-                    dinput.Update();
-                    relStickX = axisSize * ((double)dinput.joystickPosition.X) / 65536;
-                    relStickY = axisSize * ((double)dinput.joystickPosition.Y) / 65536;
-                }
-
-                int relStickXInt = Convert.ToInt32(relStickX);
-                int relStickYInt = Convert.ToInt32(relStickY);
-
-                Point stick;
-                Rectangle axisPosition;
-
-                if (useXInput)
-                {
-                    stick = new Point(relStickXInt, axisSize - relStickYInt);
-                    axisPosition = new Rectangle(relStickXInt, axisSize - relStickYInt, 10, 10);
-                }
-                else
-                {
-                    stick = new Point(relStickXInt, relStickYInt);
-                    axisPosition = new Rectangle(relStickXInt, relStickYInt, 10, 10);
-                }
-
-                try
-                {
-                    using (Graphics graph = Graphics.FromImage(axisImage))
-                    {
-                        if (paintItOnce)
-                        {
-                            graph.FillRectangle(new SolidBrush(Color.FromArgb(55, 55, 58)), new Rectangle(0, 0, imageSize, imageSize));
-                            paintItOnce = false;
-                        }
-
-                        // first gear ScanCodeShort.KEY_1
-                        if (gearRectangles[0].Rect.Contains(stick))
-                        {
-                            graph.FillEllipse(rectColors[0], axisPosition);
-                            bGWorker.ReportProgress(2);
-                        }
-                        // second gear ScanCodeShort.KEY_2
-                        else if (gearRectangles[1].Rect.Contains(stick))
-                        {
-                            graph.FillEllipse(rectColors[1], axisPosition);
-                            bGWorker.ReportProgress(3);
-                        }
-                        // third gear ScanCodeShort.KEY_3
-                        else if (gearRectangles[2].Rect.Contains(stick))
-                        {
-                            graph.FillEllipse(rectColors[2], axisPosition);
-                            bGWorker.ReportProgress(4);
-                        }
-                        // fourth gear ScanCodeShort.KEY_4
-                        else if (gearRectangles[3].Rect.Contains(stick))
-                        {
-                            graph.FillEllipse(rectColors[3], axisPosition);
-                            bGWorker.ReportProgress(5);
-                        }
-                        // fifth gear ScanCodeShort.KEY_5
-                        else if (gearRectangles[4].Rect.Contains(stick))
-                        {
-                            graph.FillEllipse(rectColors[4], axisPosition);
-                            bGWorker.ReportProgress(6);
-                        }
-                        // sixth gear ScanCodeShort.KEY_6
-                        else if (gearRectangles[5].Rect.Contains(stick))
-                        {
-                            graph.FillEllipse(rectColors[5], axisPosition);
-                            bGWorker.ReportProgress(7);
-                        }
-                        // reverse gear ScanCodeShort.KEY_9
-                        else if (gearRectangles[6].Rect.Contains(stick))
-                        {
-                            graph.FillEllipse(rectColors[6], axisPosition);
-                            bGWorker.ReportProgress(10);
-                        }
-                        else // ScanCodeShort.KEY_9
-                        {
-                            gearRightNow.ForeColor = Color.Black;
-                            graph.FillEllipse(Brushes.Black, axisPosition);
-                            bGWorker.ReportProgress(11);
-                        }
-                    }
-
-                    axisBox.Image = axisImage;
-                    System.Threading.Thread.Sleep(30);
-                }
-                catch (Exception) { }
-            } while (true);
+            if (name.Length == 0) return "Please enter a name.";
+            if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+                return "These characters are not allowed: " + string.Join(" ", Path.GetInvalidFileNameChars().Where(c => c > 31));
+            return null;
         }
 
-        void bGWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        void DeleteSelectedLayout()
         {
-            if (previousGearInBackground != e.ProgressPercentage)
+            if (!(layoutCombo.SelectedItem is string name)) return;
+            if (!ShifterLayout.ListSaved(LayoutFolder).TryGetValue(name, out string path)) return;
+
+            if (MessageBox.Show(this, "Delete the layout \"" + name + "\"?\nThis cannot be undone.", "Delete layout",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                return;
+
+            try
             {
-                if (e.ProgressPercentage == 11)
-                {
-                    controllerHandling.Release((ScanCodeShort)previousGearInBackground);
-                }
-                else
-                {
-                    //Send Release Send for a cleaner signal when shifting directly from gear to gear
-                    controllerHandling.SendInputWithAPI((ScanCodeShort)e.ProgressPercentage);
-                    controllerHandling.Release((ScanCodeShort)e.ProgressPercentage);
-                    controllerHandling.SendInputWithAPI((ScanCodeShort)e.ProgressPercentage);
-                }
-
-                previousGearInBackground = e.ProgressPercentage;
-
-                switch (previousGearInBackground - 1)
-                {
-                    case 1: // Gear 1
-                        gearRightNow.ForeColor = Color.FromArgb(255, 46, 204, 113); // Green (like rectColors[0])
-                        gearRightNow.Text = (previousGearInBackground - 1).ToString();
-                        shiftCounter[0]++;
-                        frstGearLabel.Text = shiftCounter[0].ToString();
-                        break;
-                    case 2: // Gear 2
-                        gearRightNow.ForeColor = Color.FromArgb(255, 230, 126, 34); // Orange (like rectColors[1])
-                        gearRightNow.Text = (previousGearInBackground - 1).ToString();
-                        shiftCounter[1]++;
-                        scndGearLabel.Text = shiftCounter[1].ToString();
-                        break;
-                    case 3: // Gear 3
-                        gearRightNow.ForeColor = Color.FromArgb(255, 149, 165, 166); // Gray (like rectColors[2])
-                        gearRightNow.Text = (previousGearInBackground - 1).ToString();
-                        shiftCounter[2]++;
-                        thrdGearLabel.Text = shiftCounter[2].ToString();
-                        break;
-                    case 4: // Gear 4
-                        gearRightNow.ForeColor = Color.FromArgb(255, 52, 152, 219); // Light blue (like rectColors[3])
-                        gearRightNow.Text = (previousGearInBackground - 1).ToString();
-                        shiftCounter[3]++;
-                        frthGearLabel.Text = shiftCounter[3].ToString();
-                        break;
-                    case 5: // Gear 5
-                        gearRightNow.ForeColor = Color.FromArgb(255, 155, 89, 182); // Purple (like rectColors[4])
-                        gearRightNow.Text = (previousGearInBackground - 1).ToString();
-                        shiftCounter[4]++;
-                        ffthGearLabel.Text = shiftCounter[4].ToString();
-                        break;
-                    case 6: // Gear 6
-                        gearRightNow.ForeColor = Color.FromArgb(255, 241, 196, 15); // Yellow (like rectColors[5])
-                        gearRightNow.Text = (previousGearInBackground - 1).ToString();
-                        shiftCounter[5]++;
-                        sxthGearLabel.Text = shiftCounter[5].ToString();
-                        break;
-                    case 9: // Reverse gear
-                        gearRightNow.ForeColor = Color.FromArgb(255, 231, 76, 60); // Red (like rectColors[6])
-                        gearRightNow.Text = "R";
-                        shiftCounter[6]++;
-                        rvrsGearLabel.Text = shiftCounter[6].ToString();
-                        break;
-                    default:
-                        gearRightNow.ForeColor = Color.Black;
-                        gearRightNow.Text = "N";
-                        break;
-                }
-
-                ttlshift.Text = getTotalShifts().ToString();
-                WriteToBinaryFile(Path.GetDirectoryName(Application.ExecutablePath) + "//shiftCount", shiftCounter);
-
+                File.Delete(path);
+                if (settings.LayoutName == name) settings.LayoutName = null;
+                RefreshLayoutList(null);
+                MarkDirty();
+            }
+            catch (Exception ex)
+            {
+                ShowError("The layout could not be deleted.\n\n" + ex.Message);
             }
         }
 
-        void paintingbGWorker_DoWork(object sender, DoWorkEventArgs e)
+        // ================================================================== live state
+
+        void SetOutputEnabled(bool enabled)
         {
-            do
-            {
-                if (paintingbGWorker.CancellationPending)
-                    break;
-
-                try
-                {
-                    PaintGears();
-
-                    System.Threading.Thread.Sleep(20);
-                }
-                catch (Exception) { }
-            } while (true);
+            engine.OutputEnabled = enabled;
+            activateButton.Text = enabled ? "Active" : "Activate";
+            activateButton.Icon = enabled ? Theme.Icons.Stop : Theme.Icons.Play;
+            activateButton.AccentColor = enabled ? Theme.Success : (Color?)null;
         }
 
-        void grabbingbGWorker_DoWork(object sender, DoWorkEventArgs e)
+        void UpdateLiveState()
         {
-            do
+            engine.GetState(out var position, out bool connected, out var engaged);
+
+            canvas.SetStick(position, connected, engaged);
+            indicator.SetState(engaged, engine.OutputEnabled, connected);
+            gearList.Engaged = engaged;
+
+            bool resized = connected
+                ? statusPill.SetStatus(settings.InputMode == InputMode.XInput ? "Controller connected" : "Device connected", Theme.Success)
+                : statusPill.SetStatus("No controller", Theme.Danger);
+            if (resized) LayoutHeader(activateButton.Parent);
+
+            bool counted = false;
+            while (engine.Shifts.TryDequeue(out var gear))
             {
-                if (paintingbGWorker.CancellationPending)
-                    break;
-
-                try
-                {
-                    PaintGears();
-
-                    System.Threading.Thread.Sleep(20);
-                }
-                catch (Exception) { }
-            } while (true);
-        }
-
-        private void PaintGears()
-        {
-            overlayImage = new Bitmap(imageSize, imageSize);
-
-            using (Graphics graph = Graphics.FromImage(overlayImage))
-            {
-                for (int i = 0; i < gearRectangles.Count; i++)
-                {
-                    // Gear-Rectangle
-                    using(var path = new System.Drawing.Drawing2D.GraphicsPath())
-                    {
-                        path.AddRectangle(gearRectangles[i].Rect);
-                        graph.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                        graph.DrawPath(new Pen(rectColors[i], 3), path);
-                    }
-
-                    // Gear-Name with modern styling
-                    var gearNameRect = new Rectangle(
-                        gearRectangles[i].XPosition + gearRectangles[i].Width - 22,
-                        gearRectangles[i].YPosition - 12,
-                        30, 30);
-                    
-                    using(var path = new System.Drawing.Drawing2D.GraphicsPath())
-                    {
-                        path.AddRectangle(gearNameRect);
-                        graph.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                        
-                        // Fill with semi-transparent white
-                        graph.FillPath(new SolidBrush(Color.FromArgb(240, 255, 255, 255)), path);
-                        
-                        // Draw border
-                        graph.DrawPath(new Pen(rectColors[i], 2), path);
-                    }
-                    
-                    // Draw gear number with modern font
-                    using(Font drawFont = new Font("Segoe UI", 16, FontStyle.Bold))
-                    {
-                        var format = new StringFormat()
-                        {
-                            Alignment = StringAlignment.Center,
-                            LineAlignment = StringAlignment.Center
-                        };
-                        graph.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
-                        graph.DrawString(gearRectangles[i].Gear, drawFont, rectColors[i], gearNameRect, format);
-                    }
-
-                    // Gear-Grabber
-                    graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition - 8, gearRectangles[i].YPosition - 10, 20, 23);
-                    graph.DrawImage(Properties.Resources.directionArrows, new Point(gearRectangles[i].XPosition - 8, gearRectangles[i].YPosition - 8));
-
-                    // Gear-Scaler
-                    graph.FillRectangle(new SolidBrush(Color.White), gearRectangles[i].XPosition + gearRectangles[i].Width - 12, gearRectangles[i].YPosition + gearRectangles[i].Height - 12, 20, 20);
-                    graph.DrawImage(Properties.Resources.scalingArrow, gearRectangles[i].XPosition + gearRectangles[i].Width - 10, gearRectangles[i].YPosition + gearRectangles[i].Height - 10, 18, 18);
-                }
+                settings.Increment(gear.Name);
+                counted = true;
             }
-
-            overlayBox.Image = overlayImage;
-        }
-
-        int getTotalShifts()
-        {
-            int tmp = 0;
-
-            for (int i = 0; i < shiftCounter.Length; i++)
+            if (counted)
             {
-                tmp += shiftCounter[i];
-            }
-
-            return tmp;
-        }
-
-        private void pictureBox1_Click(object sender, EventArgs e)
-        {
-            aboutForm win2 = new aboutForm();
-            win2.Show();
-        }
-
-        public static void WriteGearsToFile<T>(string filePath, T objectToWrite, bool append = false)
-        {
-            List<GearRectangle> dummyForType = new List<GearRectangle>();
-
-            if (objectToWrite.GetType() == dummyForType.GetType())
-            {
-                List<GearRectangle> gearRectanglesToSave = objectToWrite as List<GearRectangle>;
-
-                using (BinaryWriter writer = new BinaryWriter(File.Open(filePath, FileMode.Create)))
-                {
-                    foreach (var gearRect in gearRectanglesToSave)
-                    {
-                        writer.Write(gearRect.Gear);
-
-                        writer.Write(gearRect.XPosition);
-                        writer.Write(gearRect.YPosition);
-                        writer.Write(gearRect.Width);
-                        writer.Write(gearRect.Height);
-                    }
-                }
+                UpdateStatistics();
+                MarkDirty();
             }
         }
 
-        List<GearRectangle> ReadGearListFromFile(string filePath)
+        void UpdateStatistics()
         {
-            FileStream fin = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            BinaryReader reader = new BinaryReader(fin);
-            reader.BaseStream.Seek(0, SeekOrigin.Begin);
+            totalShiftsLabel.Text = settings.TotalShifts.ToString("N0");
+            gearList.Invalidate();
+        }
 
-            List<GearRectangle> loadRects = new List<GearRectangle>();
+        void ResetStatistics()
+        {
+            if (MessageBox.Show(this, "Reset all shift counters to zero?", "Reset statistics",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
 
-            for (int i = 0; i < gearsCount; i++)
+            settings.ShiftCounts.Clear();
+            UpdateStatistics();
+            MarkDirty();
+        }
+
+        // ================================================================== persistence
+
+        void MarkDirty()
+        {
+            if (!loading) settingsDirty = true;
+        }
+
+        void SaveSettingsIfDirty()
+        {
+            if (!settingsDirty) return;
+            settingsDirty = false;
+
+            settings.Layout = layout;
+            if (WindowState == FormWindowState.Normal)
             {
-                GearRectangle gearRect = new GearRectangle();
-
-                gearRect.Gear = reader.ReadString();
-
-                gearRect.XPosition = reader.ReadInt32();
-                gearRect.YPosition = reader.ReadInt32();
-                gearRect.Width = reader.ReadInt32();
-                gearRect.Height = reader.ReadInt32();
-
-                loadRects.Add(gearRect);
+                settings.WindowWidth = Width;
+                settings.WindowHeight = Height;
             }
+            settings.WindowMaximized = WindowState == FormWindowState.Maximized;
 
-            reader.Close();
-
-            return loadRects;
+            try { settings.Save(SettingsPath); }
+            catch (Exception ex) { Console.WriteLine("Could not save settings: " + ex.Message); }
         }
 
-        public static void WriteToBinaryFile<T>(string filePath, T objectToWrite, bool append = false)
+        protected override void OnResizeEnd(EventArgs e)
         {
-            using (Stream stream = File.Open(filePath, append ? FileMode.Append : FileMode.Create))
-            {
-                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-                binaryFormatter.Serialize(stream, objectToWrite);
-            }
+            base.OnResizeEnd(e);
+            MarkDirty();
         }
 
-        public static T ReadFromBinaryFile<T>(string filePath)
+        protected override void OnSizeChanged(EventArgs e)
         {
-            using (Stream stream = File.Open(filePath, FileMode.Open))
-            {
-                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-                return (T)binaryFormatter.Deserialize(stream);
-            }
+            base.OnSizeChanged(e);
+            MarkDirty();
         }
 
-        private void directInputRadiobutton_Clicked(object sender, EventArgs e)
+        protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            directInputRadiobutton.Checked = true;
-            xInputRadioButton.Checked = false;
-            useXInput = false;
+            uiTimer.Stop();
+            saveTimer.Stop();
+            settingsDirty = true;
+            SaveSettingsIfDirty();
+            engine.Dispose();
+            base.OnFormClosing(e);
         }
 
-        private void xInputRadioButton_Clicked(object sender, EventArgs e)
+        // ================================================================== helpers
+
+        static void OpenUrl(string url)
         {
-            xInputRadioButton.Checked = true;
-            directInputRadiobutton.Checked = false;
-            useXInput = true;
+            try { Process.Start(url); } catch (Exception ex) { Console.WriteLine("Could not open link: " + ex.Message); }
         }
 
-        private void joyStickListBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            dinput = new DirectInputController(joyStickListBox, true);
-        }
-
-        private void loadButton_Click(object sender, EventArgs e)
-        {
-
-            if (savedLayoutsListBox.SelectedItem != null)
-            {
-                gearRectangles = ReadGearListFromFile(layoutFolder + "\\" + savedLayoutsListBox.SelectedItem.ToString());
-
-                PaintGears();
-            }
-        }
-
-        private void saveButton_Click(object sender, EventArgs e)
-        {
-            WriteGearsToFile(layoutFolder + "//" + layoutNameBox.Text, gearRectangles);
-            PopulateListBox();
-
-            for (int i = 0; i < savedLayoutsListBox.Items.Count; i++)
-            {
-                if (savedLayoutsListBox.Items[i].ToString() == layoutNameBox.Text)
-                {
-                    //savedLayoutsListBox.SelectedIndex = i;
-                }
-            }
-        }
-
-        private void savedLayoutsListBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            layoutNameBox.Text = savedLayoutsListBox.SelectedItem.ToString();
-        }
-
-        private void pictureBox3_Click(object sender, EventArgs e)
-        {
-            Process.Start("https://www.youtube.com/c/BeanJ?sub_confirmation=1");
-        }
-
-        bool PointIsInside(Rectangle rect, PointF mouseclick, bool grabber)
-        {
-            int distanceFromCorner = 10;
-            double area = distanceFromCorner * 2 * distanceFromCorner * 2;
-
-            PointF[] v;
-
-            if (grabber)
-            {
-                v = new PointF[] {
-                    new PointF(rect.X - distanceFromCorner, rect.Y - distanceFromCorner),
-                    new PointF(rect.X + distanceFromCorner, rect.Y - distanceFromCorner),
-                    new PointF(rect.X + distanceFromCorner, rect.Y + distanceFromCorner),
-                    new PointF(rect.X - distanceFromCorner, rect.Y + distanceFromCorner)
-                };
-            }
-            else
-            {
-                v = new PointF[] {
-                    new PointF(rect.X + rect.Width - distanceFromCorner, rect.Y + rect.Height - distanceFromCorner),
-                    new PointF(rect.X + rect.Width + distanceFromCorner, rect.Y + rect.Height - distanceFromCorner),
-                    new PointF(rect.X + rect.Width + distanceFromCorner, rect.Y + rect.Height + distanceFromCorner),
-                    new PointF(rect.X + rect.Width - distanceFromCorner, rect.Y + rect.Height + distanceFromCorner)
-                };
-            }
-
-            // calculate area of all rectangle-vertices to the mouseclick coordinates
-            float measuredArea =
-                TriangleArea(mouseclick, v[0], v[1]) +
-                TriangleArea(mouseclick, v[1], v[2]) +
-                TriangleArea(mouseclick, v[2], v[3]) +
-                TriangleArea(mouseclick, v[3], v[0]);
-
-            // check for negative values
-            if (measuredArea < 0)
-            {
-                measuredArea *= -1;
-            }
-
-            // if the measuredArea is bigger the mouseclick is outside of the found contour
-            if (measuredArea > area + 1)
-            {
-                return false;
-            }
-            return true;
-        }
-
-        float TriangleArea(PointF A, PointF B, PointF C)
-        {
-            float triangleArea = ((B.X * A.Y - A.X * B.Y) + (C.X * B.Y - B.X * C.Y) + (A.X * C.Y - C.X * A.Y)) / 2;
-
-            // check for negative values
-            if (triangleArea < 0)
-            {
-                triangleArea *= -1;
-            }
-            // calculate area of triangle with points
-            return triangleArea;
-        }
+        void ShowError(string message) => MessageBox.Show(this, message, Text, MessageBoxButtons.OK, MessageBoxIcon.Error);
     }
 }
