@@ -93,12 +93,14 @@ if ($msbuild) {
     $msbuildArgs = @(
         $solution,
         '/m',
+        '/nodeReuse:false',
         "/p:Configuration=$Configuration"
     )
-    $p = Start-Process -FilePath $msbuild -ArgumentList $msbuildArgs -NoNewWindow -Wait -PassThru
-    if ($p.ExitCode -ne 0) {
-        Write-Error "MSBuild failed with exit code $($p.ExitCode)"
-        exit $p.ExitCode
+    # Call MSBuild directly: Start-Process -Wait would also wait for lingering MSBuild worker nodes.
+    & $msbuild @msbuildArgs
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "MSBuild failed with exit code $LASTEXITCODE"
+        exit $LASTEXITCODE
     }
     Write-Host "MSBuild completed successfully."
     exit 0
