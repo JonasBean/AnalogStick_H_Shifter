@@ -72,7 +72,7 @@ if ($MsBuildPath) {
 
     # If not found, try using vswhere (if available) to locate installed Visual Studio and MSBuild
     if (-not $msbuild) {
-        $vswhere = "$env:ProgramFiles(x86)\Microsoft Visual Studio\Installer\vswhere.exe"
+        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
         if (Test-Path $vswhere) {
             try {
                 $vswhereArgs = @('-latest','-products','*','-requires','Microsoft.Component.MSBuild','-property','installationPath')
