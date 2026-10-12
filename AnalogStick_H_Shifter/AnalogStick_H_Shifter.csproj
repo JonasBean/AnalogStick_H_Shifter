@@ -95,8 +95,6 @@
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="WindowsBase" />
-    <!-- NuGet PackageReference entries added for SharpDX and InputSimulator; the legacy HintPath-based References
-         were removed so MSBuild/NuGet will resolve the assemblies from the package restore. -->
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Core\AppSettings.cs" />
@@ -146,7 +144,6 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-  <!-- packages.config removed: project now uses PackageReference for NuGet packages -->
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -181,14 +178,9 @@
     </BootstrapperPackage>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  
-  <!-- Added PackageReference entries so modern NuGet/MSBuild restore can fetch missing packages
-       This keeps the existing HintPath references for older VS/MSBuild but enables automatic
-       restore when using newer tooling. -->
   <ItemGroup>
     <PackageReference Include="SharpDX" Version="4.2.0" />
     <PackageReference Include="SharpDX.DirectInput" Version="4.2.0" />
     <PackageReference Include="SharpDX.XInput" Version="4.2.0" />
-    <PackageReference Include="InputSimulator" Version="1.0.4.0" />
   </ItemGroup>
 </Project>
